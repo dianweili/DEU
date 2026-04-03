@@ -1,0 +1,23 @@
+# Visio files
+*.vsd
+*.vsdx
+*.vss
+*.vst
+*.vsw
+
+# Temporary files
+*.tmp
+*.temp
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Logs
+*.log
