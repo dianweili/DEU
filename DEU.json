@@ -1,0 +1,101 @@
+{
+  signal: [
+    {
+      name: "clk",
+      wave: "p.............|..............."
+    },
+    {
+      name: "rst_n",
+      wave: "0.1...........|..............."
+    },
+    ["Input",
+      {
+        name: "i_data_vld",
+        wave: "0.....1.01....|..01....0......",
+        node: "......a................c......",
+      },
+      {
+        name: "i_data_sliv[6:0]",
+        wave: "x.....34x34342|34x34343x......",
+        data: "sliv sliv sliv sliv sliv sliv sliv sliv sliv sliv sliv sliv sliv sliv"
+      },
+      {
+        name: "i_data0_in[19:0]",
+        wave: "x.....34x34342|34x34343x......",
+        data: "d0 d0 d0 d0 d0 d0 d0 d0 d0 d0 d0 d0 d0 d0"
+      },
+      {
+        name: "i_data1_in[19:0]",
+        wave: "x.....34x34342|34x34343x......",
+        data: "d1 d1 d1 d1 d1 d1 d1 d1 d1 d1 d1 d1 d1 d1"
+      },
+      {
+        name: "......",
+        wave: "x.....34x34342|34x34343x......",
+        data: "dx dx dx dx dx dx dx dx dx dx dx dx dx dx"
+      },
+      {
+        name: "i_data15_in[19:0]",
+        wave: "x.....34x34342|34x34343x......",
+        data: "d15 d15 d15 d15 d15 d15 d15 d15 d15 d15 d15 d15 d15 d15",
+        node: "......e................f......",
+      },
+    ],
+     {},
+     ["output",
+      {
+        name: "o_dout_vld",
+        wave: "x........34x34342|34x34343x...",
+        data: "vld vld vld vld vld vld vld vld vld vld vld vld vld vld ",
+        node: ".........b................d...",
+      },
+      {
+        name: "o_dout0[63:0]",
+        wave: "x........34x34342|34x34343x...",
+        data: "o0 o0 o0 o0 o0 o0 o0 o0 o0 o0 o0 o0 o0 o0"
+      },
+      {
+        name: "o_dout1[63:0]",
+        wave: "x........34x34342|34x34343x...",
+        data: "o1 o1 o1 o1 o1 o1 o1 o1 o1 o1 o1 o1 o1 o1"
+      },
+      {
+        name: "......",
+        wave: "x........34x34342|34x34343x...",
+        data: "ox ox ox ox ox ox ox ox ox ox ox ox ox ox"
+      },
+      {
+        name: "o_dout15[63:0]",
+        wave: "x........34x34342|34x34343x...",
+        data: "o15 o15 o15 o15 o15 o15 o15 o15 o15 o15 o15 o15 o15 o15"
+      },
+      {
+        name: "o_dout0_idx[3:0]",
+        wave: "x........34x34342|34x34343x...",
+        data: "idx0 idx0 idx0 idx0 idx0 idx0 idx0 idx0 idx0 idx0 idx0 idx0 idx0 idx0 "
+      },
+      {
+        name: "o_dout1_idx[3:0]",
+        wave: "x........34x34342|34x34343x...",
+        data: "idx1 idx1 idx1 idx1 idx1 idx1 idx1 idx1 idx1 idx1 idx1 idx1 idx1 idx1"
+      },
+      {
+        name: "......",
+        wave: "x........34x34342|34x34343x...",
+        data: "idxx idxx idxx idxx idxx idxx idxx idxx idxx idxx idxx idxx idxx idxx"
+      },
+      {
+        name: "o_dout15_idx[3:0]",
+        wave: "x........34x34342|34x34343x...",
+        data: "idx15 idx15 idx15 idx15 idx15 idx15 idx15 idx15 idx15 idx15 idx15 idx15 idx15 idx15"
+      },
+     ]
+  ],
+  config: { hscale: 0.5 },
+  edge: [
+     'a~b',
+     'e~b 0-40 cycle',
+     'c~d',
+     'f~d 0-40 cycle',
+    ]
+}
