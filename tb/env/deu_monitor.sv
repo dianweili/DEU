@@ -70,15 +70,15 @@ class deu_monitor extends uvm_monitor;
     endtask
 
     // -------------------------------------------------------------------------
-    // Capture every cycle where o_out_vld != 0
+    // Capture every cycle where o_dout_vld != 0
     // -------------------------------------------------------------------------
     task monitor_response();
         deu_seq_item item;
         forever begin
             @(vif.mon_cb);
-            if (vif.mon_cb.rst_n && (|vif.mon_cb.o_out_vld)) begin
+            if (vif.mon_cb.rst_n && (|vif.mon_cb.o_dout_vld)) begin
                 item = deu_seq_item::type_id::create("resp");
-                item.o_out_vld  = vif.mon_cb.o_out_vld;
+                item.o_dout_vld  = vif.mon_cb.o_dout_vld;
                 item.o_dout[0]  = vif.mon_cb.o_dout0;
                 item.o_dout[1]  = vif.mon_cb.o_dout1;
                 item.o_dout[2]  = vif.mon_cb.o_dout2;

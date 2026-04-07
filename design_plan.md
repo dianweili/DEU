@@ -91,7 +91,7 @@ square = val16 * val16 << shift_amt
 | Stage 6  | 1 | **排序 Phase 1+2**（Steps 1-3，3 级 CAS 组合逻辑）：形成有序 4 元组 |
 | Stage 7  | 1 | **排序 Phase 3**（Steps 4-6，3 级 CAS 组合逻辑）：形成有序 8 元组 |
 | Stage 8  | 1 | **排序 Phase 4**（Steps 7-10，4 级 CAS 组合逻辑）：完成全排序 |
-| Stage 9  | 1 | **输出整理**：popcount(bitmap) 得有效数 K，生成 o_out_vld = (1<<K)-1 |
+| Stage 9  | 1 | **输出整理**：popcount(bitmap) 得有效数 K，生成 o_dout_vld = (1<<K)-1 |
 | Stage 10 | 1 | **reg_out**：寄存器输出所有信号 |
 
 **总计：约 12 拍，满足 40 拍要求，留有充足余量。**
@@ -184,7 +184,7 @@ Sort Stage 3 (Step 7-10, 4 级 CAS 串联):
 输出：
   o_sorted_data[15:0][63:0]
   o_sorted_idx[15:0][3:0]
-  o_out_vld[15:0]
+  o_dout_vld[15:0]
 ```
 
 ---
@@ -204,8 +204,8 @@ Sort Stage 3 (Step 7-10, 4 级 CAS 串联):
 
 ### 4.4 无效数据处理
 - `bitmap[i] == 0` 的通道，在进入排序前将 square 值设为 `64'hFFFF_FFFF_FFFF_FFFF`
-- 排序后这些数据自然排到高位（o_dout14, o_dout15...），对应 o_out_vld 为 0
-- o_out_vld 由 `popcount(bitmap)` 决定：有效数量 K，则 `o_out_vld = (1 << K) - 1`
+- 排序后这些数据自然排到高位（o_dout14, o_dout15...），对应 o_dout_vld 为 0
+- o_dout_vld 由 `popcount(bitmap)` 决定：有效数量 K，则 `o_dout_vld = (1 << K) - 1`
 
 ### 4.5 寄存器要求
 - **reg_in**：除 `i_data_vld` 外，所有输入信号在 Stage 1 寄存

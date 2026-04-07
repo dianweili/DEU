@@ -95,7 +95,7 @@ UVM_INFO / HIGH: Enqueued stim @cycle42: SLIV=0x72 d0=0x12345 d1=0x54321 ...
 
 ### 2. 响应检查（监测器 → 记分板）
 
-6 个时钟周期后，当 `o_out_vld != 0` 出现时，记分板：
+6 个时钟周期后，当 `o_dout_vld != 0` 出现时，记分板：
 - 从 FIFO 弹出最旧的激励
 - 调用 `deu_ref_model::compute_expected()` 获取标准输出
 - 比较 RTL 输出 vs. 标准输出
@@ -169,7 +169,7 @@ UVM_ERROR: *** TESTCASE FAILED ***
    - 插入排序，按索引作为 tie-breaker
    - 返回升序排列的数组 + 有效掩码
 
-记分板在每个 `o_out_vld != 0` 周期将 RTL 输出与该参考实现进行比较。
+记分板在每个 `o_dout_vld != 0` 周期将 RTL 输出与该参考实现进行比较。
 
 ---
 
@@ -201,7 +201,7 @@ deu_tb_top
    make waves TESTNAME=deu_sanity_test
    # 打开波形，检查：
    # - 第 0-2 周期的 i_data_vld & i_data_sliv
-   # - 6 个周期后的 o_out_vld
+   # - 6 个周期后的 o_dout_vld
    # - o_dout* 值是否匹配预期（从错误信息）
    ```
 
@@ -316,7 +316,7 @@ make waves FSDB=1 TESTNAME=deu_sanity_test    # 带 GUI 的 FSDB
 
 ### 记分板显示意外的 "Enqueued stim"，但没有匹配的检查
 - 检查：激励是否被驱动（i_data_vld=1）？
-- 检查：响应是否在时钟周期内（6 个周期后 o_out_vld != 0）？
+- 检查：响应是否在时钟周期内（6 个周期后 o_dout_vld != 0）？
 - 可能需要驱动更多空闲周期或检查 rst_n 状态。
 
 ### 随机测试挂起

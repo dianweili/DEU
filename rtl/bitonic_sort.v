@@ -3,14 +3,26 @@
 // Description : 16路双调排序网络，5级流水
 //
 // 流水线结构：每2个compare层打一拍，共5拍
-//   step1,2  → reg_p1
-//   step3,4  → reg_p2
-//   step5,6  → reg_p3
-//   step7,8  → reg_p4
-//   step9,10 → reg_p5 (output)
+//   step1(s1),  step2(s2)  → reg_p1
+//   step3(s3),  step4(s4)  → reg_p2
+//   step5(s5),  step6(s6)  → reg_p3
+//   step7(s7),  step8(s8)  → reg_p4
+//   step9(s9),  step10(s10) → output
+//
+// 10级Compare-Swap层说明：
+//   s1  stride-1 交替升降序  → 建立8个升/降序对
+//   s2  stride-2 交替升降序  → 形成4路升/降序4元组
+//   s3  stride-1 交替升降序  → 完成4路排序
+//   s4  stride-4 交替升降序  → 形成2个8元组
+//   s5  stride-2 交替升降序  → 8元组内部细化
+//   s6  stride-1 交替升降序  → 完成8路排序（[0-7]升，[8-15]降）
+//   s7  stride-8 全升序      → 跨8路合并（16元组开始）
+//   s8  stride-4 全升序      → 16元组细化
+//   s9  stride-2 全升序      → 16元组细化
+//   s10 stride-1 全升序      → 最终相邻比较，完成全排序
 //
 // 寄存器分类：
-//   带复位（async rst）: *_vld, o_out_vld
+//   带复位（async rst）: *_vld, o_dout_vld
 //   无复位（no rst）   : 所有数据寄存器，仅 vld=1 时锁存
 // =============================================================================
 
@@ -53,7 +65,7 @@ module bitonic_sort (
     input  wire [ 3:0]  i_idx14,
     input  wire [ 3:0]  i_idx15,
 
-    output reg  [15:0]  o_out_vld,
+    output reg  [15:0]  o_dout_vld,
     output reg  [63:0]  o_dout0,
     output reg  [63:0]  o_dout1,
     output reg  [63:0]  o_dout2,
@@ -251,21 +263,22 @@ module bitonic_sort (
     compare_swap u_cs_s5_13_15 (.din_a(p2_d13), .idx_a(p2_i13), .din_b(p2_d15), .idx_b(p2_i15), .dir(1'b1), .dout_lo(s5_d13), .idx_lo(s5_i13), .dout_hi(s5_d15), .idx_hi(s5_i15));
 
     // =========================================================
-    // Step 6: 跨8路比较，形成1个升序16元组
+    // Step 6: 组内相邻比较，完成两个8路组的内部排序
+    //   [0-7] 升序 (dir=0)，[8-15] 降序 (dir=1)
     // =========================================================
     wire [63:0] s6_d0,  s6_d1,  s6_d2,  s6_d3,  s6_d4,  s6_d5,  s6_d6,  s6_d7;
     wire [63:0] s6_d8,  s6_d9,  s6_d10, s6_d11, s6_d12, s6_d13, s6_d14, s6_d15;
     wire [ 3:0] s6_i0,  s6_i1,  s6_i2,  s6_i3,  s6_i4,  s6_i5,  s6_i6,  s6_i7;
     wire [ 3:0] s6_i8,  s6_i9,  s6_i10, s6_i11, s6_i12, s6_i13, s6_i14, s6_i15;
 
-    compare_swap u_cs_s6_0_8   (.din_a(s5_d0),  .idx_a(s5_i0),  .din_b(s5_d8),  .idx_b(s5_i8),  .dir(1'b0), .dout_lo(s6_d0),  .idx_lo(s6_i0),  .dout_hi(s6_d8),  .idx_hi(s6_i8));
-    compare_swap u_cs_s6_1_9   (.din_a(s5_d1),  .idx_a(s5_i1),  .din_b(s5_d9),  .idx_b(s5_i9),  .dir(1'b0), .dout_lo(s6_d1),  .idx_lo(s6_i1),  .dout_hi(s6_d9),  .idx_hi(s6_i9));
-    compare_swap u_cs_s6_2_10  (.din_a(s5_d2),  .idx_a(s5_i2),  .din_b(s5_d10), .idx_b(s5_i10), .dir(1'b0), .dout_lo(s6_d2),  .idx_lo(s6_i2),  .dout_hi(s6_d10), .idx_hi(s6_i10));
-    compare_swap u_cs_s6_3_11  (.din_a(s5_d3),  .idx_a(s5_i3),  .din_b(s5_d11), .idx_b(s5_i11), .dir(1'b0), .dout_lo(s6_d3),  .idx_lo(s6_i3),  .dout_hi(s6_d11), .idx_hi(s6_i11));
-    compare_swap u_cs_s6_4_12  (.din_a(s5_d4),  .idx_a(s5_i4),  .din_b(s5_d12), .idx_b(s5_i12), .dir(1'b0), .dout_lo(s6_d4),  .idx_lo(s6_i4),  .dout_hi(s6_d12), .idx_hi(s6_i12));
-    compare_swap u_cs_s6_5_13  (.din_a(s5_d5),  .idx_a(s5_i5),  .din_b(s5_d13), .idx_b(s5_i13), .dir(1'b0), .dout_lo(s6_d5),  .idx_lo(s6_i5),  .dout_hi(s6_d13), .idx_hi(s6_i13));
-    compare_swap u_cs_s6_6_14  (.din_a(s5_d6),  .idx_a(s5_i6),  .din_b(s5_d14), .idx_b(s5_i14), .dir(1'b0), .dout_lo(s6_d6),  .idx_lo(s6_i6),  .dout_hi(s6_d14), .idx_hi(s6_i14));
-    compare_swap u_cs_s6_7_15  (.din_a(s5_d7),  .idx_a(s5_i7),  .din_b(s5_d15), .idx_b(s5_i15), .dir(1'b0), .dout_lo(s6_d7),  .idx_lo(s6_i7),  .dout_hi(s6_d15), .idx_hi(s6_i15));
+    compare_swap u_cs_s6_0_1   (.din_a(s5_d0),  .idx_a(s5_i0),  .din_b(s5_d1),  .idx_b(s5_i1),  .dir(1'b0), .dout_lo(s6_d0),  .idx_lo(s6_i0),  .dout_hi(s6_d1),  .idx_hi(s6_i1));
+    compare_swap u_cs_s6_2_3   (.din_a(s5_d2),  .idx_a(s5_i2),  .din_b(s5_d3),  .idx_b(s5_i3),  .dir(1'b0), .dout_lo(s6_d2),  .idx_lo(s6_i2),  .dout_hi(s6_d3),  .idx_hi(s6_i3));
+    compare_swap u_cs_s6_4_5   (.din_a(s5_d4),  .idx_a(s5_i4),  .din_b(s5_d5),  .idx_b(s5_i5),  .dir(1'b0), .dout_lo(s6_d4),  .idx_lo(s6_i4),  .dout_hi(s6_d5),  .idx_hi(s6_i5));
+    compare_swap u_cs_s6_6_7   (.din_a(s5_d6),  .idx_a(s5_i6),  .din_b(s5_d7),  .idx_b(s5_i7),  .dir(1'b0), .dout_lo(s6_d6),  .idx_lo(s6_i6),  .dout_hi(s6_d7),  .idx_hi(s6_i7));
+    compare_swap u_cs_s6_8_9   (.din_a(s5_d8),  .idx_a(s5_i8),  .din_b(s5_d9),  .idx_b(s5_i9),  .dir(1'b1), .dout_lo(s6_d8),  .idx_lo(s6_i8),  .dout_hi(s6_d9),  .idx_hi(s6_i9));
+    compare_swap u_cs_s6_10_11 (.din_a(s5_d10), .idx_a(s5_i10), .din_b(s5_d11), .idx_b(s5_i11), .dir(1'b1), .dout_lo(s6_d10), .idx_lo(s6_i10), .dout_hi(s6_d11), .idx_hi(s6_i11));
+    compare_swap u_cs_s6_12_13 (.din_a(s5_d12), .idx_a(s5_i12), .din_b(s5_d13), .idx_b(s5_i13), .dir(1'b1), .dout_lo(s6_d12), .idx_lo(s6_i12), .dout_hi(s6_d13), .idx_hi(s6_i13));
+    compare_swap u_cs_s6_14_15 (.din_a(s5_d14), .idx_a(s5_i14), .din_b(s5_d15), .idx_b(s5_i15), .dir(1'b1), .dout_lo(s6_d14), .idx_lo(s6_i14), .dout_hi(s6_d15), .idx_hi(s6_i15));
 
     // =========================================================
     // Pipeline Register P3  (after step5+step6)
@@ -305,38 +318,38 @@ module bitonic_sort (
     end
 
     // =========================================================
-    // Step 7: 跨4路比较（16元组内部细化）
+    // Step 7: 跨8路比较，合并两个8路组（升序合并）
     // =========================================================
     wire [63:0] s7_d0,  s7_d1,  s7_d2,  s7_d3,  s7_d4,  s7_d5,  s7_d6,  s7_d7;
     wire [63:0] s7_d8,  s7_d9,  s7_d10, s7_d11, s7_d12, s7_d13, s7_d14, s7_d15;
     wire [ 3:0] s7_i0,  s7_i1,  s7_i2,  s7_i3,  s7_i4,  s7_i5,  s7_i6,  s7_i7;
     wire [ 3:0] s7_i8,  s7_i9,  s7_i10, s7_i11, s7_i12, s7_i13, s7_i14, s7_i15;
 
-    compare_swap u_cs_s7_0_4   (.din_a(p3_d0),  .idx_a(p3_i0),  .din_b(p3_d4),  .idx_b(p3_i4),  .dir(1'b0), .dout_lo(s7_d0),  .idx_lo(s7_i0),  .dout_hi(s7_d4),  .idx_hi(s7_i4));
-    compare_swap u_cs_s7_1_5   (.din_a(p3_d1),  .idx_a(p3_i1),  .din_b(p3_d5),  .idx_b(p3_i5),  .dir(1'b0), .dout_lo(s7_d1),  .idx_lo(s7_i1),  .dout_hi(s7_d5),  .idx_hi(s7_i5));
-    compare_swap u_cs_s7_2_6   (.din_a(p3_d2),  .idx_a(p3_i2),  .din_b(p3_d6),  .idx_b(p3_i6),  .dir(1'b0), .dout_lo(s7_d2),  .idx_lo(s7_i2),  .dout_hi(s7_d6),  .idx_hi(s7_i6));
-    compare_swap u_cs_s7_3_7   (.din_a(p3_d3),  .idx_a(p3_i3),  .din_b(p3_d7),  .idx_b(p3_i7),  .dir(1'b0), .dout_lo(s7_d3),  .idx_lo(s7_i3),  .dout_hi(s7_d7),  .idx_hi(s7_i7));
-    compare_swap u_cs_s7_8_12  (.din_a(p3_d8),  .idx_a(p3_i8),  .din_b(p3_d12), .idx_b(p3_i12), .dir(1'b0), .dout_lo(s7_d8),  .idx_lo(s7_i8),  .dout_hi(s7_d12), .idx_hi(s7_i12));
-    compare_swap u_cs_s7_9_13  (.din_a(p3_d9),  .idx_a(p3_i9),  .din_b(p3_d13), .idx_b(p3_i13), .dir(1'b0), .dout_lo(s7_d9),  .idx_lo(s7_i9),  .dout_hi(s7_d13), .idx_hi(s7_i13));
-    compare_swap u_cs_s7_10_14 (.din_a(p3_d10), .idx_a(p3_i10), .din_b(p3_d14), .idx_b(p3_i14), .dir(1'b0), .dout_lo(s7_d10), .idx_lo(s7_i10), .dout_hi(s7_d14), .idx_hi(s7_i14));
-    compare_swap u_cs_s7_11_15 (.din_a(p3_d11), .idx_a(p3_i11), .din_b(p3_d15), .idx_b(p3_i15), .dir(1'b0), .dout_lo(s7_d11), .idx_lo(s7_i11), .dout_hi(s7_d15), .idx_hi(s7_i15));
+    compare_swap u_cs_s7_0_8   (.din_a(p3_d0),  .idx_a(p3_i0),  .din_b(p3_d8),  .idx_b(p3_i8),  .dir(1'b0), .dout_lo(s7_d0),  .idx_lo(s7_i0),  .dout_hi(s7_d8),  .idx_hi(s7_i8));
+    compare_swap u_cs_s7_1_9   (.din_a(p3_d1),  .idx_a(p3_i1),  .din_b(p3_d9),  .idx_b(p3_i9),  .dir(1'b0), .dout_lo(s7_d1),  .idx_lo(s7_i1),  .dout_hi(s7_d9),  .idx_hi(s7_i9));
+    compare_swap u_cs_s7_2_10  (.din_a(p3_d2),  .idx_a(p3_i2),  .din_b(p3_d10), .idx_b(p3_i10), .dir(1'b0), .dout_lo(s7_d2),  .idx_lo(s7_i2),  .dout_hi(s7_d10), .idx_hi(s7_i10));
+    compare_swap u_cs_s7_3_11  (.din_a(p3_d3),  .idx_a(p3_i3),  .din_b(p3_d11), .idx_b(p3_i11), .dir(1'b0), .dout_lo(s7_d3),  .idx_lo(s7_i3),  .dout_hi(s7_d11), .idx_hi(s7_i11));
+    compare_swap u_cs_s7_4_12  (.din_a(p3_d4),  .idx_a(p3_i4),  .din_b(p3_d12), .idx_b(p3_i12), .dir(1'b0), .dout_lo(s7_d4),  .idx_lo(s7_i4),  .dout_hi(s7_d12), .idx_hi(s7_i12));
+    compare_swap u_cs_s7_5_13  (.din_a(p3_d5),  .idx_a(p3_i5),  .din_b(p3_d13), .idx_b(p3_i13), .dir(1'b0), .dout_lo(s7_d5),  .idx_lo(s7_i5),  .dout_hi(s7_d13), .idx_hi(s7_i13));
+    compare_swap u_cs_s7_6_14  (.din_a(p3_d6),  .idx_a(p3_i6),  .din_b(p3_d14), .idx_b(p3_i14), .dir(1'b0), .dout_lo(s7_d6),  .idx_lo(s7_i6),  .dout_hi(s7_d14), .idx_hi(s7_i14));
+    compare_swap u_cs_s7_7_15  (.din_a(p3_d7),  .idx_a(p3_i7),  .din_b(p3_d15), .idx_b(p3_i15), .dir(1'b0), .dout_lo(s7_d7),  .idx_lo(s7_i7),  .dout_hi(s7_d15), .idx_hi(s7_i15));
 
     // =========================================================
-    // Step 8: 跨2路比较
+    // Step 8: 跨4路比较（16元组内部细化）
     // =========================================================
     wire [63:0] s8_d0,  s8_d1,  s8_d2,  s8_d3,  s8_d4,  s8_d5,  s8_d6,  s8_d7;
     wire [63:0] s8_d8,  s8_d9,  s8_d10, s8_d11, s8_d12, s8_d13, s8_d14, s8_d15;
     wire [ 3:0] s8_i0,  s8_i1,  s8_i2,  s8_i3,  s8_i4,  s8_i5,  s8_i6,  s8_i7;
     wire [ 3:0] s8_i8,  s8_i9,  s8_i10, s8_i11, s8_i12, s8_i13, s8_i14, s8_i15;
 
-    compare_swap u_cs_s8_0_2   (.din_a(s7_d0),  .idx_a(s7_i0),  .din_b(s7_d2),  .idx_b(s7_i2),  .dir(1'b0), .dout_lo(s8_d0),  .idx_lo(s8_i0),  .dout_hi(s8_d2),  .idx_hi(s8_i2));
-    compare_swap u_cs_s8_1_3   (.din_a(s7_d1),  .idx_a(s7_i1),  .din_b(s7_d3),  .idx_b(s7_i3),  .dir(1'b0), .dout_lo(s8_d1),  .idx_lo(s8_i1),  .dout_hi(s8_d3),  .idx_hi(s8_i3));
-    compare_swap u_cs_s8_4_6   (.din_a(s7_d4),  .idx_a(s7_i4),  .din_b(s7_d6),  .idx_b(s7_i6),  .dir(1'b0), .dout_lo(s8_d4),  .idx_lo(s8_i4),  .dout_hi(s8_d6),  .idx_hi(s8_i6));
-    compare_swap u_cs_s8_5_7   (.din_a(s7_d5),  .idx_a(s7_i5),  .din_b(s7_d7),  .idx_b(s7_i7),  .dir(1'b0), .dout_lo(s8_d5),  .idx_lo(s8_i5),  .dout_hi(s8_d7),  .idx_hi(s8_i7));
-    compare_swap u_cs_s8_8_10  (.din_a(s7_d8),  .idx_a(s7_i8),  .din_b(s7_d10), .idx_b(s7_i10), .dir(1'b0), .dout_lo(s8_d8),  .idx_lo(s8_i8),  .dout_hi(s8_d10), .idx_hi(s8_i10));
-    compare_swap u_cs_s8_9_11  (.din_a(s7_d9),  .idx_a(s7_i9),  .din_b(s7_d11), .idx_b(s7_i11), .dir(1'b0), .dout_lo(s8_d9),  .idx_lo(s8_i9),  .dout_hi(s8_d11), .idx_hi(s8_i11));
-    compare_swap u_cs_s8_12_14 (.din_a(s7_d12), .idx_a(s7_i12), .din_b(s7_d14), .idx_b(s7_i14), .dir(1'b0), .dout_lo(s8_d12), .idx_lo(s8_i12), .dout_hi(s8_d14), .idx_hi(s8_i14));
-    compare_swap u_cs_s8_13_15 (.din_a(s7_d13), .idx_a(s7_i13), .din_b(s7_d15), .idx_b(s7_i15), .dir(1'b0), .dout_lo(s8_d13), .idx_lo(s8_i13), .dout_hi(s8_d15), .idx_hi(s8_i15));
+    compare_swap u_cs_s8_0_4   (.din_a(s7_d0),  .idx_a(s7_i0),  .din_b(s7_d4),  .idx_b(s7_i4),  .dir(1'b0), .dout_lo(s8_d0),  .idx_lo(s8_i0),  .dout_hi(s8_d4),  .idx_hi(s8_i4));
+    compare_swap u_cs_s8_1_5   (.din_a(s7_d1),  .idx_a(s7_i1),  .din_b(s7_d5),  .idx_b(s7_i5),  .dir(1'b0), .dout_lo(s8_d1),  .idx_lo(s8_i1),  .dout_hi(s8_d5),  .idx_hi(s8_i5));
+    compare_swap u_cs_s8_2_6   (.din_a(s7_d2),  .idx_a(s7_i2),  .din_b(s7_d6),  .idx_b(s7_i6),  .dir(1'b0), .dout_lo(s8_d2),  .idx_lo(s8_i2),  .dout_hi(s8_d6),  .idx_hi(s8_i6));
+    compare_swap u_cs_s8_3_7   (.din_a(s7_d3),  .idx_a(s7_i3),  .din_b(s7_d7),  .idx_b(s7_i7),  .dir(1'b0), .dout_lo(s8_d3),  .idx_lo(s8_i3),  .dout_hi(s8_d7),  .idx_hi(s8_i7));
+    compare_swap u_cs_s8_8_12  (.din_a(s7_d8),  .idx_a(s7_i8),  .din_b(s7_d12), .idx_b(s7_i12), .dir(1'b0), .dout_lo(s8_d8),  .idx_lo(s8_i8),  .dout_hi(s8_d12), .idx_hi(s8_i12));
+    compare_swap u_cs_s8_9_13  (.din_a(s7_d9),  .idx_a(s7_i9),  .din_b(s7_d13), .idx_b(s7_i13), .dir(1'b0), .dout_lo(s8_d9),  .idx_lo(s8_i9),  .dout_hi(s8_d13), .idx_hi(s8_i13));
+    compare_swap u_cs_s8_10_14 (.din_a(s7_d10), .idx_a(s7_i10), .din_b(s7_d14), .idx_b(s7_i14), .dir(1'b0), .dout_lo(s8_d10), .idx_lo(s8_i10), .dout_hi(s8_d14), .idx_hi(s8_i14));
+    compare_swap u_cs_s8_11_15 (.din_a(s7_d11), .idx_a(s7_i11), .din_b(s7_d15), .idx_b(s7_i15), .dir(1'b0), .dout_lo(s8_d11), .idx_lo(s8_i11), .dout_hi(s8_d15), .idx_hi(s8_i15));
 
     // =========================================================
     // Pipeline Register P4  (after step7+step8)
@@ -376,7 +389,7 @@ module bitonic_sort (
     end
 
     // =========================================================
-    // Step 9: 相邻比较
+    // Step 9: 跨2路比较（16元组内部细化）
     // =========================================================
     wire [63:0] s9_d0,  s9_d1,  s9_d2,  s9_d3,  s9_d4,  s9_d5,  s9_d6,  s9_d7;
     wire [63:0] s9_d8,  s9_d9,  s9_d10, s9_d11, s9_d12, s9_d13, s9_d14, s9_d15;
@@ -421,17 +434,17 @@ module bitonic_sort (
               p4_bitmap[12] + p4_bitmap[13] + p4_bitmap[14] + p4_bitmap[15];
     end
 
-    // 带复位：o_out_vld
+    // 带复位：o_dout_vld
     always @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin
-            o_out_vld <= 16'h0;
+            o_dout_vld <= 16'h0;
         end else begin
             if (!p4_vld)
-                o_out_vld <= 16'h0;
+                o_dout_vld <= 16'h0;
             else if (cnt == 5'd16)
-                o_out_vld <= 16'hFFFF;
+                o_dout_vld <= 16'hFFFF;
             else
-                o_out_vld <= (16'h1 << cnt) - 16'h1;
+                o_dout_vld <= (16'h1 << cnt) - 16'h1;
         end
     end
 

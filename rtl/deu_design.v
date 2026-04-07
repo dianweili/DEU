@@ -30,7 +30,7 @@ module deu_design (
     input  wire [19:0]  i_data14_in,
     input  wire [19:0]  i_data15_in,
 
-    output wire [15:0]  o_out_vld,
+    output wire [15:0]  o_dout_vld,
     output wire [63:0]  o_dout0,
     output wire [63:0]  o_dout1,
     output wire [63:0]  o_dout2,
@@ -381,7 +381,7 @@ module deu_design (
         .i_idx13   (4'd13),
         .i_idx14   (4'd14),
         .i_idx15   (4'd15),
-        .o_out_vld (o_out_vld),
+        .o_dout_vld (o_dout_vld),
         .o_dout0   (o_dout0),
         .o_dout1   (o_dout1),
         .o_dout2   (o_dout2),

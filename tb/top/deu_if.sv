@@ -16,7 +16,7 @@ interface deu_if (input logic clk);
     logic [19:0] i_data12_in, i_data13_in, i_data14_in, i_data15_in;
 
     // Response
-    logic [15:0] o_out_vld;
+    logic [15:0] o_dout_vld;
     logic [63:0] o_dout0,  o_dout1,  o_dout2,  o_dout3;
     logic [63:0] o_dout4,  o_dout5,  o_dout6,  o_dout7;
     logic [63:0] o_dout8,  o_dout9,  o_dout10, o_dout11;
@@ -48,7 +48,7 @@ interface deu_if (input logic clk);
         input i_data4_in,  i_data5_in,  i_data6_in,  i_data7_in;
         input i_data8_in,  i_data9_in,  i_data10_in, i_data11_in;
         input i_data12_in, i_data13_in, i_data14_in, i_data15_in;
-        input o_out_vld;
+        input o_dout_vld;
         input o_dout0,  o_dout1,  o_dout2,  o_dout3;
         input o_dout4,  o_dout5,  o_dout6,  o_dout7;
         input o_dout8,  o_dout9,  o_dout10, o_dout11;

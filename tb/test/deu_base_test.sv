@@ -98,7 +98,7 @@ endclass : deu_base_test
 //              Used to quickly smoke-check RTL after any modification.
 //
 // Expected (from test_plan.md DT-01):
-//   bitmap = 16'h3366, 8 valid channels, 8-cycle latency, o_out_vld=8'hFF
+//   bitmap = 16'h3366, 8 valid channels, 8-cycle latency, o_dout_vld=8'hFF
 // =============================================================================
 class deu_sanity_test extends deu_base_test;
     `uvm_component_utils(deu_sanity_test)

@@ -20,7 +20,7 @@ class deu_seq_item extends uvm_sequence_item;
     rand logic [19:0] cmp_data [16];     // compressed data, one per channel
 
     // ---- Response fields (filled by monitor) --------------------------------
-    logic [15:0] o_out_vld;
+    logic [15:0] o_dout_vld;
     logic [63:0] o_dout  [16];
     logic [3:0]  o_idx   [16];
 

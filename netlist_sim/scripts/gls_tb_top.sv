@@ -59,7 +59,7 @@ module gls_tb_top;
         .i_data13_in    (dut_if.i_data13_in),
         .i_data14_in    (dut_if.i_data14_in),
         .i_data15_in    (dut_if.i_data15_in),
-        .o_out_vld      (dut_if.o_out_vld),
+        .o_dout_vld      (dut_if.o_dout_vld),
         .o_dout0        (dut_if.o_dout0),
         .o_dout1        (dut_if.o_dout1),
         .o_dout2        (dut_if.o_dout2),

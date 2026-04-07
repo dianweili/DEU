@@ -105,10 +105,10 @@ class deu_scoreboard extends uvm_scoreboard;
         ok = 1;
 
         // out_vld
-        if (resp.o_out_vld !== exp_out_vld) begin
+        if (resp.o_dout_vld !== exp_out_vld) begin
             `uvm_error("SCB", $sformatf(
                 "OUT_VLD mismatch: got 0x%04h, exp 0x%04h | stim: %s",
-                resp.o_out_vld, exp_out_vld, e.item.convert2string()))
+                resp.o_dout_vld, exp_out_vld, e.item.convert2string()))
             ok = 0;
         end
 
