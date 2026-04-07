@@ -81,7 +81,6 @@ module bitonic_sort (
     output reg  [ 3:0]  o_idx15
 );
 
-    integer     popk;
     reg  [4:0]  cnt;
 
     // =========================================================
@@ -1363,14 +1362,19 @@ module bitonic_sort (
     //   数据输出:  无复位，仅 rb_vld=1 时锁存
     // =========================================================
 
+    // 组合逻辑：popcount of rb_bitmap
+    always @(*) begin
+        cnt = rb_bitmap[0]  + rb_bitmap[1]  + rb_bitmap[2]  + rb_bitmap[3]  +
+              rb_bitmap[4]  + rb_bitmap[5]  + rb_bitmap[6]  + rb_bitmap[7]  +
+              rb_bitmap[8]  + rb_bitmap[9]  + rb_bitmap[10] + rb_bitmap[11] +
+              rb_bitmap[12] + rb_bitmap[13] + rb_bitmap[14] + rb_bitmap[15];
+    end
+
     // 带复位：o_out_vld
     always @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin
             o_out_vld <= 16'h0;
         end else begin
-            cnt = 5'd0;
-            for (popk = 0; popk < 16; popk = popk + 1)
-                cnt = cnt + {4'b0, rb_bitmap[popk]};
             if (!rb_vld)
                 o_out_vld <= 16'h0;
             else if (cnt == 5'd16)

@@ -228,3 +228,67 @@ decp_data;
 
 
 
+---
+
+## 3 工程规划
+
+### 3.1 目录结构
+
+```
+DEU/
+├── rtl/                    # RTL源文件
+│   ├── deu_design.v        # 顶层模块（6拍流水线）
+│   ├── bitonic_sort.v      # 双调排序网络（3级流水）
+│   ├── decomp_square.v     # 解压缩+求平方
+│   ├── sliv_decoder.v      # SLIV解码（位图生成）
+│   ├── compare_swap.v      # 比较交换单元（排序基本单元）
+│   └── filelist.f          # 文件列表（绝对路径）
+├── tb/
+│   ├── top/                # Testbench顶层（RTL仿真用）
+│   └── ref/                # Python参考模型（golden比对）
+├── sim/                    # RTL仿真
+│   ├── scripts/            # VCS run脚本、Makefile
+│   ├── run/                # 仿真中间文件（csrc、simv等）
+│   └── waves/              # 波形文件（.fsdb/.vcd）
+├── spyglass/               # SpyGlass静态检查
+│   ├── scripts/            # .prj工程文件、run脚本
+│   ├── run/                # SpyGlass执行目录
+│   └── reports/            # lint/CDC/RDC报告
+├── syn/                    # 综合（DC/Genus）
+│   ├── scripts/            # TCL综合脚本
+│   ├── run/                # 综合执行目录
+│   ├── reports/            # 时序/面积/功耗报告
+│   └── netlist/            # 输出网表（.v/.sdf）
+├── formal/
+│   └── lec/                # 逻辑等价检查（Conformal/Formality）
+│       ├── scripts/
+│       ├── run/
+│       └── reports/
+├── netlist_sim/            # 网表仿真（后仿）
+│   ├── scripts/
+│   ├── run/
+│   └── waves/
+└── constraints/            # SDC时序约束（syn/formal共用）
+```
+
+### 3.2 工程推进计划
+
+| 阶段 | 内容 | 目录 |
+|------|------|------|
+| **Step 1** | 编写Testbench及Python参考模型 | `tb/` |
+| **Step 2** | 配置VCS编译仿真脚本，RTL功能仿真 | `sim/` |
+| **Step 3** | 配置SpyGlass工程，完成lint/CDC静态检查 | `spyglass/` |
+| **Step 4** | 编写SDC时序约束，运行DC/Genus综合 | `constraints/` + `syn/` |
+| **Step 5** | 运行Conformal/Formality逻辑等价检查 | `formal/lec/` |
+| **Step 6** | 基于综合网表运行后仿（带SDF反标） | `netlist_sim/` |
+
+### 3.3 关键设计参数
+
+| 参数 | 值 |
+|------|----|
+| 时钟频率 | 1 GHz（周期1ns） |
+| 流水线延迟 | 6拍 |
+| 输入数据路数 | 16路，每路20bit |
+| 输出数据路数 | 最多16路，每路64bit（平方值）+ 4bit（原始索引） |
+| 排序算法 | Bitonic Sort，10步CAS分3个流水级 |
+| 最大允许延迟 | 40拍（余量充足） |

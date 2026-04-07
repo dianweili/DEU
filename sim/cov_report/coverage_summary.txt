@@ -1,0 +1,29 @@
+=== DEU RTL Coverage Report ===
+Tests: sanity, directed_dt01, directed_full_valid, pipeline_timing,
+       cov_sliv0, cov_sliv13, cov_sliv14, cov_sliv15
+
+Line coverage : 37/37 = 100.0%
+Cond coverage : 43/45 = 95.6%  (2 remaining gaps are structurally impossible)
+
+Per-file line coverage:
+  bitonic_sort.v                    22/ 22 = 100.0%
+  compare_swap.v                      (covered via merged instances)
+  decomp_square.v                     (covered)
+  deu_design.v                      15/ 15 = 100.0%
+  sliv_decoder.v                    (see cond below)
+
+Per-file cond coverage:
+  bitonic_sort.v                     1/  1 = 100.0%
+  compare_swap.v                     8/  8 = 100.0%  (merged across all dir=0/dir=1 instances)
+  decomp_square.v                    2/  2 = 100.0%
+  deu_design.v                      16/ 16 = 100.0%
+  sliv_decoder.v                    16/ 18 =  88.9%
+
+Remaining sliv_decoder gaps (structurally unreachable):
+  line 63 j=0  crid=3 : ((0 >= S_ext) && (0 < S_end)) row [A=T, B=F]
+                         Impossible: B=F requires S_end=0, but L>=1 guarantees S_end>=1.
+  line 63 j=15 crid=18: ((15 >= S_ext) && (15 < S_end)) row [A=F, B=T]
+                         Impossible: A=F requires S_ext>15, but S is 4-bit (max 15).
+
+These rows cannot be reached by any valid SLIV input.
+Achievable maximum cond coverage for this design: 43/45 = 95.6%

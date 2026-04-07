@@ -21,3 +21,69 @@ Thumbs.db
 
 # Logs
 *.log
+
+# ---- Simulation (RTL) ------------------------------------------------------
+sim/run/csrc/
+sim/run/simv
+sim/run/simv.daidir/
+sim/run/*.vpd
+sim/run/inter.vpd
+sim/run/ucli.key
+sim/run/DEFAULT.lib++/
+sim/run/deu_lib/
+sim/run/*.lib++
+sim/run/novas.conf
+sim/run/novas.rc
+sim/run/vericomLog/
+sim/run/verdiLog/
+sim/run/simv.vdb/
+sim/simv
+sim/simv.daidir/
+sim/csrc/
+sim/compile.log
+sim/tr_db.log
+sim/ucli.key
+sim/vc_hdrs.h
+sim/novas_dump.log
+sim/*.vpd
+sim/*.fsdb
+sim/logs/
+sim/waves/
+sim/scripts/vericomLog/
+sim/coverage_db.vdb/
+sim/verdiLog/
+sim/vdCovLog/
+sim/novas*
+
+# ---- Synthesis (DC) --------------------------------------------------------
+syn/work/
+syn/rpt/
+syn/netlist/
+
+# ---- Gate-level simulation -------------------------------------------------
+netlist_sim/run/
+netlist_sim/scripts/novas.*
+netlist_sim/scripts/verdiLog/
+
+# ---- SpyGlass --------------------------------------------------------------
+spyglass/run/
+spyglass/reports/
+spyglass/deu_lint/
+
+# ---- Formal (LEC) ----------------------------------------------------------
+formal/lec/run/
+formal/lec/reports/
+
+# ---- Synopsys tool junk ----------------------------------------------------
+*.mr
+*.pvl
+*.syn
+*.svf
+default.svf
+ucli.key
+vc_hdrs.h
+Synopsys_stack_trace_*.txt
+crte_*.txt
+command.log
+lc_shell_command.log
+sdf.log

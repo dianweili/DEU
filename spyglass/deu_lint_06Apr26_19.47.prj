@@ -1,0 +1,43 @@
+#  -------------------------------------------------------------------
+#  This is a software generated project file. Manual edits to this file could be lost during the next save operation
+#  Copyright Atrenta, Inc 2010
+#  -------------------------------------------------------------------
+#!SPYGLASS_PROJECT_FILE
+#!VERSION 3.0
+#  -------------------------------------------------------------------
+#  This is a software generated project file. Manual edits to this file could be lost during the next save operation
+#  Copyright Synopsys Inc.
+#  Last Updated By: SpyGlass SpyGlass_vV-2023.12-SP1
+#  Last Updated On Mon Apr  6 19:43:45 2026
+#
+#  -------------------------------------------------------------------
+
+##Data Import Section
+
+read_file -type verilog /data/project/DEU/rtl/sliv_decoder.v
+#BackRefFile:/data/project/DEU/spyglass/deu_lint.prj #LineNumber:13
+read_file -type verilog /data/project/DEU/rtl/decomp_square.v
+#BackRefFile:/data/project/DEU/spyglass/deu_lint.prj #LineNumber:14
+read_file -type verilog /data/project/DEU/rtl/compare_swap.v
+#BackRefFile:/data/project/DEU/spyglass/deu_lint.prj #LineNumber:15
+read_file -type verilog /data/project/DEU/rtl/bitonic_sort.v
+#BackRefFile:/data/project/DEU/spyglass/deu_lint.prj #LineNumber:16
+read_file -type verilog /data/project/DEU/rtl/deu_design.v
+#BackRefFile:/data/project/DEU/spyglass/deu_lint.prj #LineNumber:17
+
+##Common Options Section
+
+set_option top deu_design
+set_option language_mode mixed
+set_option designread_disable_flatten no
+set_option auto_save yes
+set_option projectwdir /data/project/DEU/spyglass
+set_option sdc2sgdc no
+set_option active_methodology $SPYGLASS_HOME/GuideWare/latest/block/rtl_handoff
+set_option designread_enable_synthesis no
+
+
+##Goal Setup Section
+
+current_methodology $SPYGLASS_HOME/GuideWare/latest/block/rtl_handoff
+

@@ -1,0 +1,26 @@
+#  -------------------------------------------------------------------
+#  This is a software generated project file. Manual edits to this file could be lost during the next save operation
+#  Copyright Atrenta, Inc 2010
+#  -------------------------------------------------------------------
+##########################################################
+# Spyglass Lint Project File — DEU
+##########################################################
+
+## ---- Source files ----
+read_file -type verilog {
+    ../../rtl/sliv_decoder.v
+    ../../rtl/decomp_square.v
+    ../../rtl/compare_swap.v
+    ../../rtl/bitonic_sort.v
+    ../../rtl/deu_design.v
+}
+
+## ---- Top module ----
+set_option top deu_design
+
+## ---- Language options ----
+set_option language_mode mixed
+set_option designread_disable_flatten no
+
+## ---- Save session (enables GUI re-open and design query) ----
+set_option auto_save true
