@@ -107,7 +107,21 @@ XRUN_SIM_FLAGS := \
 # Targets
 # =============================================================================
 
-.PHONY: all sanity directed random waves clean help test compile coverage cov_report
+
+# ---- Vericom compile flags --------------------------------------------------
+VERICOM_LIB    ?= work
+VERICOM_FLAGS  := \
+    -sverilog \
+    -timescale 1ns/1ps \
+    -lib $(VERICOM_LIB) \
+    +incdir+$(TB_DIR)/cfg \
+    +incdir+$(TB_DIR)/env \
+    +incdir+$(TB_DIR)/ref \
+    +incdir+$(TB_DIR)/seq \
+    +incdir+$(TB_DIR)/test \
+    +incdir+$(TB_DIR)/top
+
+.PHONY: all sanity directed random waves clean help test compile coverage cov_report vericom
 
 all: sanity
 
@@ -123,13 +137,20 @@ directed:
 random:
 	$(MAKE) run TESTNAME=deu_random_test CFG=$(CFG)
 
-# ---- Compile only (generate vericom library) --------------------------------
+# ---- Compile only (generate simv) ------------------------------------------
 compile:
 ifeq ($(SIM),xcelium)
 	xrun $(XRUN_FLAGS) $(RTL_FILES) $(TB_TOPS) -elaborate -exit
 else
 	vcs $(VCS_COMP_FLAGS) $(RTL_FILES) $(TB_TOPS) -o $(SIM_DIR)/simv
 endif
+
+# ---- Vericom: compile RTL into Verdi design library -------------------------
+vericom:
+	rm -rf $(SIM_DIR)/$(VERICOM_LIB).lib++
+	vericom $(VERICOM_FLAGS) \
+	    $(RTL_FILES) $(TB_TOPS) \
+	    -top deu_tb_top
 
 # ---- Core compile + simulate target -----------------------------------------
 # Use "test" as an alias to "run" to avoid conflict with ./run directory

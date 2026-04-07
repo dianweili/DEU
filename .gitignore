@@ -54,6 +54,8 @@ sim/coverage_db.vdb/
 sim/verdiLog/
 sim/vdCovLog/
 sim/novas*
+sim/work.lib++/
+sim/vericomLog/
 
 # ---- Synthesis (DC) --------------------------------------------------------
 syn/work/

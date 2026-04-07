@@ -13,7 +13,7 @@
 //     rand_seed       : integer (0 = use UVM seed)
 //     sliv_fixed      : integer 0-127 (DIRECTED; -1 = random each txn)
 //     vld_pattern     : ALWAYS_HIGH | TOGGLE | RANDOM (i_data_vld pattern)
-//     check_pipeline_delay : 0|1 (enable exact 6-cycle latency check)
+//     check_pipeline_delay : 0|1 (enable exact 8-cycle latency check)
 //     check_power_hold     : 0|1 (enable data-register hold check)
 //     max_cycles      : integer (simulation budget, 0 = unlimited)
 // =============================================================================

@@ -1,16 +1,16 @@
 // =============================================================================
 // Class  : deu_scoreboard
 // Description: Receives stimulus items (from ap_stimulus) and response items
-//              (from ap_response), correlates them through a 6-cycle pipeline
+//              (from ap_response), correlates them through a 8-cycle pipeline
 //              FIFO, and checks against deu_ref_model.
 //
-//  Pipeline delay = 6 clocks:
+//  Pipeline delay = 8 clocks:
 //    Stage1 (reg_in) → Stage2 (SLIV dec + reg) → Stage3 (decomp + reg)
-//    → Sort Stage4 → Stage5 → Stage6 → output
+//    → Sort Stage4~8 (5拍，每2个compare层打一拍) → output
 //
 //  Checkers (enabled via deu_test_cfg):
 //    1. Functional: out_vld, dout[], idx[] match reference model
-//    2. Pipeline latency: exact 6-cycle delay from valid-in to valid-out
+//    2. Pipeline latency: exact 8-cycle delay from valid-in to valid-out
 //    3. Power-hold: data regs do not toggle when vld=0 (waveform check)
 // =============================================================================
 
@@ -85,14 +85,14 @@ class deu_scoreboard extends uvm_scoreboard;
         // ---- Pipeline latency check -----------------------------------------
         if (cfg.check_pipeline_delay) begin
             longint latency = cycle_cnt - e.cycle_stamp;
-            if (latency != 6) begin
+            if (latency != 8) begin
                 `uvm_error("SCB", $sformatf(
-                    "PIPELINE DELAY ERROR: expected 6, got %0d (in@%0d out@%0d)",
+                    "PIPELINE DELAY ERROR: expected 8, got %0d (in@%0d out@%0d)",
                     latency, e.cycle_stamp, cycle_cnt))
                 checks_failed++;
             end else begin
                 `uvm_info("SCB", $sformatf(
-                    "Pipeline delay OK: 6 cycles (in@%0d)", e.cycle_stamp), UVM_HIGH)
+                    "Pipeline delay OK: 8 cycles (in@%0d)", e.cycle_stamp), UVM_HIGH)
                 checks_passed++;
             end
         end

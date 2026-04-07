@@ -79,8 +79,8 @@ class deu_base_seq extends uvm_sequence #(deu_seq_item);
             end
         end
 
-        // Drain pipeline: 6 extra idle cycles so last output exits
-        repeat (6) begin
+        // Drain pipeline: 8 extra idle cycles so last output exits
+        repeat (8) begin
             item = deu_seq_item::type_id::create("drain");
             start_item(item);
             void'(item.randomize());
