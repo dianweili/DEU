@@ -109,11 +109,13 @@ XRUN_SIM_FLAGS := \
 
 
 # ---- Vericom compile flags --------------------------------------------------
+UVM_HOME       := /data/synopsys/vcs_all_vW-2024.09-SP1/vcs/W-2024.09-SP1/etc/uvm-1.2
 VERICOM_LIB    ?= work
 VERICOM_FLAGS  := \
     -sverilog \
-    -timescale 1ns/1ps \
+    -timescale=1ns/1ps \
     -lib $(VERICOM_LIB) \
+    +incdir+$(UVM_HOME) \
     +incdir+$(TB_DIR)/cfg \
     +incdir+$(TB_DIR)/env \
     +incdir+$(TB_DIR)/ref \
@@ -149,6 +151,7 @@ endif
 vericom:
 	rm -rf $(SIM_DIR)/$(VERICOM_LIB).lib++
 	vericom $(VERICOM_FLAGS) \
+	    $(UVM_HOME)/uvm_pkg.sv \
 	    $(RTL_FILES) $(TB_TOPS) \
 	    -top deu_tb_top
 
