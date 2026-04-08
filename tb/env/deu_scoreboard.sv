@@ -85,14 +85,14 @@ class deu_scoreboard extends uvm_scoreboard;
         // ---- Pipeline latency check -----------------------------------------
         if (cfg.check_pipeline_delay) begin
             longint latency = cycle_cnt - e.cycle_stamp;
-            if (latency != 8) begin
+            if (latency != 9) begin
                 `uvm_error("SCB", $sformatf(
-                    "PIPELINE DELAY ERROR: expected 8, got %0d (in@%0d out@%0d)",
+                    "PIPELINE DELAY ERROR: expected 9, got %0d (in@%0d out@%0d)",
                     latency, e.cycle_stamp, cycle_cnt))
                 checks_failed++;
             end else begin
                 `uvm_info("SCB", $sformatf(
-                    "Pipeline delay OK: 8 cycles (in@%0d)", e.cycle_stamp), UVM_HIGH)
+                    "Pipeline delay OK: 9 cycles (in@%0d)", e.cycle_stamp), UVM_HIGH)
                 checks_passed++;
             end
         end
