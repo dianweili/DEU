@@ -5,26 +5,30 @@
 // 功能：根据 dir 决定升序或降序，比较 (din_a, din_b)，
 //       将较小值输出到 dout_lo，较大值输出到 dout_hi。
 //
+// 输入 din_a/din_b 格式：{exp[3:0], data[14:0]}（19-bit 压缩键）
+//
+// 等价性证明：
+//   各 exp 值域完全不重叠且单调递增，因此直接比较 19-bit 无符号整数
+//   与比较 64-bit square 值完全等价，无需实际计算平方。
+//
 // 比较规则（稳定排序）：
-//   1. 先比 square 值（64-bit 无符号）
-//   2. square 相同时，按 idx 升序（idx 小的视为"更小"）
+//   1. 先比 19-bit 压缩键（等价于比较 square 值）
+//   2. 压缩键相同时，按 idx 升序（idx 小的视为"更小"）
 //
 // dir=0：升序模式 —— dout_lo <= dout_hi（dout0 方向为小）
 // dir=1：降序模式 —— dout_lo >= dout_hi（dout0 方向为大）
-//   注意：在标准双调排序网络中 dir 由网络结构决定，
-//         本模块只需知道 a 是否应该保持在低位。
 // =============================================================================
 
 module compare_swap (
-    input  wire [63:0] din_a,
+    input  wire [18:0] din_a,
     input  wire [ 3:0] idx_a,
-    input  wire [63:0] din_b,
+    input  wire [18:0] din_b,
     input  wire [ 3:0] idx_b,
     input  wire        dir,     // 0=升序（小在dout_lo），1=降序（大在dout_lo）
 
-    output wire [63:0] dout_lo,
+    output wire [18:0] dout_lo,
     output wire [ 3:0] idx_lo,
-    output wire [63:0] dout_hi,
+    output wire [18:0] dout_hi,
     output wire [ 3:0] idx_hi
 );
 

@@ -2,24 +2,17 @@
 // Module  : bitonic_sort
 // Description : 16路双调排序网络，5级流水
 //
+// 优化：直接对 19-bit 压缩键 {exp[3:0], data[14:0]} 排序，
+//       等价于对 64-bit square 排序（各 exp 值域不重叠且单调递增）。
+//       排序完成后由顶层做 decomp_square 得到最终输出。
+//       流水寄存器从 64-bit 降至 19-bit，比较器从 64-bit 降至 19-bit。
+//
 // 流水线结构：每2个compare层打一拍，共5拍
 //   step1(s1),  step2(s2)  → reg_p1
 //   step3(s3),  step4(s4)  → reg_p2
 //   step5(s5),  step6(s6)  → reg_p3
 //   step7(s7),  step8(s8)  → reg_p4
 //   step9(s9),  step10(s10) → output
-//
-// 10级Compare-Swap层说明：
-//   s1  stride-1 交替升降序  → 建立8个升/降序对
-//   s2  stride-2 交替升降序  → 形成4路升/降序4元组
-//   s3  stride-1 交替升降序  → 完成4路排序
-//   s4  stride-4 交替升降序  → 形成2个8元组
-//   s5  stride-2 交替升降序  → 8元组内部细化
-//   s6  stride-1 交替升降序  → 完成8路排序（[0-7]升，[8-15]降）
-//   s7  stride-8 全升序      → 跨8路合并（16元组开始）
-//   s8  stride-4 全升序      → 16元组细化
-//   s9  stride-2 全升序      → 16元组细化
-//   s10 stride-1 全升序      → 最终相邻比较，完成全排序
 //
 // 寄存器分类：
 //   带复位（async rst）: *_vld, o_dout_vld
@@ -32,22 +25,22 @@ module bitonic_sort (
 
     input  wire         i_vld,
     input  wire [15:0]  i_bitmap,
-    input  wire [63:0]  i_sq0,
-    input  wire [63:0]  i_sq1,
-    input  wire [63:0]  i_sq2,
-    input  wire [63:0]  i_sq3,
-    input  wire [63:0]  i_sq4,
-    input  wire [63:0]  i_sq5,
-    input  wire [63:0]  i_sq6,
-    input  wire [63:0]  i_sq7,
-    input  wire [63:0]  i_sq8,
-    input  wire [63:0]  i_sq9,
-    input  wire [63:0]  i_sq10,
-    input  wire [63:0]  i_sq11,
-    input  wire [63:0]  i_sq12,
-    input  wire [63:0]  i_sq13,
-    input  wire [63:0]  i_sq14,
-    input  wire [63:0]  i_sq15,
+    input  wire [18:0]  i_key0,
+    input  wire [18:0]  i_key1,
+    input  wire [18:0]  i_key2,
+    input  wire [18:0]  i_key3,
+    input  wire [18:0]  i_key4,
+    input  wire [18:0]  i_key5,
+    input  wire [18:0]  i_key6,
+    input  wire [18:0]  i_key7,
+    input  wire [18:0]  i_key8,
+    input  wire [18:0]  i_key9,
+    input  wire [18:0]  i_key10,
+    input  wire [18:0]  i_key11,
+    input  wire [18:0]  i_key12,
+    input  wire [18:0]  i_key13,
+    input  wire [18:0]  i_key14,
+    input  wire [18:0]  i_key15,
     input  wire [ 3:0]  i_idx0,
     input  wire [ 3:0]  i_idx1,
     input  wire [ 3:0]  i_idx2,
@@ -66,22 +59,22 @@ module bitonic_sort (
     input  wire [ 3:0]  i_idx15,
 
     output reg  [15:0]  o_dout_vld,
-    output reg  [63:0]  o_dout0,
-    output reg  [63:0]  o_dout1,
-    output reg  [63:0]  o_dout2,
-    output reg  [63:0]  o_dout3,
-    output reg  [63:0]  o_dout4,
-    output reg  [63:0]  o_dout5,
-    output reg  [63:0]  o_dout6,
-    output reg  [63:0]  o_dout7,
-    output reg  [63:0]  o_dout8,
-    output reg  [63:0]  o_dout9,
-    output reg  [63:0]  o_dout10,
-    output reg  [63:0]  o_dout11,
-    output reg  [63:0]  o_dout12,
-    output reg  [63:0]  o_dout13,
-    output reg  [63:0]  o_dout14,
-    output reg  [63:0]  o_dout15,
+    output reg  [18:0]  o_key0,
+    output reg  [18:0]  o_key1,
+    output reg  [18:0]  o_key2,
+    output reg  [18:0]  o_key3,
+    output reg  [18:0]  o_key4,
+    output reg  [18:0]  o_key5,
+    output reg  [18:0]  o_key6,
+    output reg  [18:0]  o_key7,
+    output reg  [18:0]  o_key8,
+    output reg  [18:0]  o_key9,
+    output reg  [18:0]  o_key10,
+    output reg  [18:0]  o_key11,
+    output reg  [18:0]  o_key12,
+    output reg  [18:0]  o_key13,
+    output reg  [18:0]  o_key14,
+    output reg  [18:0]  o_key15,
     output reg  [ 3:0]  o_idx0,
     output reg  [ 3:0]  o_idx1,
     output reg  [ 3:0]  o_idx2,
@@ -105,25 +98,25 @@ module bitonic_sort (
     // =========================================================
     // Step 1: 相邻2路比较，形成8个升/降序对
     // =========================================================
-    wire [63:0] s1_d0,  s1_d1,  s1_d2,  s1_d3,  s1_d4,  s1_d5,  s1_d6,  s1_d7;
-    wire [63:0] s1_d8,  s1_d9,  s1_d10, s1_d11, s1_d12, s1_d13, s1_d14, s1_d15;
+    wire [18:0] s1_d0,  s1_d1,  s1_d2,  s1_d3,  s1_d4,  s1_d5,  s1_d6,  s1_d7;
+    wire [18:0] s1_d8,  s1_d9,  s1_d10, s1_d11, s1_d12, s1_d13, s1_d14, s1_d15;
     wire [ 3:0] s1_i0,  s1_i1,  s1_i2,  s1_i3,  s1_i4,  s1_i5,  s1_i6,  s1_i7;
     wire [ 3:0] s1_i8,  s1_i9,  s1_i10, s1_i11, s1_i12, s1_i13, s1_i14, s1_i15;
 
-    compare_swap u_cs_s1_0_1   (.din_a(i_sq0),  .idx_a(i_idx0),  .din_b(i_sq1),  .idx_b(i_idx1),  .dir(1'b0), .dout_lo(s1_d0),  .idx_lo(s1_i0),  .dout_hi(s1_d1),  .idx_hi(s1_i1));
-    compare_swap u_cs_s1_2_3   (.din_a(i_sq2),  .idx_a(i_idx2),  .din_b(i_sq3),  .idx_b(i_idx3),  .dir(1'b1), .dout_lo(s1_d2),  .idx_lo(s1_i2),  .dout_hi(s1_d3),  .idx_hi(s1_i3));
-    compare_swap u_cs_s1_4_5   (.din_a(i_sq4),  .idx_a(i_idx4),  .din_b(i_sq5),  .idx_b(i_idx5),  .dir(1'b0), .dout_lo(s1_d4),  .idx_lo(s1_i4),  .dout_hi(s1_d5),  .idx_hi(s1_i5));
-    compare_swap u_cs_s1_6_7   (.din_a(i_sq6),  .idx_a(i_idx6),  .din_b(i_sq7),  .idx_b(i_idx7),  .dir(1'b1), .dout_lo(s1_d6),  .idx_lo(s1_i6),  .dout_hi(s1_d7),  .idx_hi(s1_i7));
-    compare_swap u_cs_s1_8_9   (.din_a(i_sq8),  .idx_a(i_idx8),  .din_b(i_sq9),  .idx_b(i_idx9),  .dir(1'b0), .dout_lo(s1_d8),  .idx_lo(s1_i8),  .dout_hi(s1_d9),  .idx_hi(s1_i9));
-    compare_swap u_cs_s1_10_11 (.din_a(i_sq10), .idx_a(i_idx10), .din_b(i_sq11), .idx_b(i_idx11), .dir(1'b1), .dout_lo(s1_d10), .idx_lo(s1_i10), .dout_hi(s1_d11), .idx_hi(s1_i11));
-    compare_swap u_cs_s1_12_13 (.din_a(i_sq12), .idx_a(i_idx12), .din_b(i_sq13), .idx_b(i_idx13), .dir(1'b0), .dout_lo(s1_d12), .idx_lo(s1_i12), .dout_hi(s1_d13), .idx_hi(s1_i13));
-    compare_swap u_cs_s1_14_15 (.din_a(i_sq14), .idx_a(i_idx14), .din_b(i_sq15), .idx_b(i_idx15), .dir(1'b1), .dout_lo(s1_d14), .idx_lo(s1_i14), .dout_hi(s1_d15), .idx_hi(s1_i15));
+    compare_swap u_cs_s1_0_1   (.din_a(i_key0),  .idx_a(i_idx0),  .din_b(i_key1),  .idx_b(i_idx1),  .dir(1'b0), .dout_lo(s1_d0),  .idx_lo(s1_i0),  .dout_hi(s1_d1),  .idx_hi(s1_i1));
+    compare_swap u_cs_s1_2_3   (.din_a(i_key2),  .idx_a(i_idx2),  .din_b(i_key3),  .idx_b(i_idx3),  .dir(1'b1), .dout_lo(s1_d2),  .idx_lo(s1_i2),  .dout_hi(s1_d3),  .idx_hi(s1_i3));
+    compare_swap u_cs_s1_4_5   (.din_a(i_key4),  .idx_a(i_idx4),  .din_b(i_key5),  .idx_b(i_idx5),  .dir(1'b0), .dout_lo(s1_d4),  .idx_lo(s1_i4),  .dout_hi(s1_d5),  .idx_hi(s1_i5));
+    compare_swap u_cs_s1_6_7   (.din_a(i_key6),  .idx_a(i_idx6),  .din_b(i_key7),  .idx_b(i_idx7),  .dir(1'b1), .dout_lo(s1_d6),  .idx_lo(s1_i6),  .dout_hi(s1_d7),  .idx_hi(s1_i7));
+    compare_swap u_cs_s1_8_9   (.din_a(i_key8),  .idx_a(i_idx8),  .din_b(i_key9),  .idx_b(i_idx9),  .dir(1'b0), .dout_lo(s1_d8),  .idx_lo(s1_i8),  .dout_hi(s1_d9),  .idx_hi(s1_i9));
+    compare_swap u_cs_s1_10_11 (.din_a(i_key10), .idx_a(i_idx10), .din_b(i_key11), .idx_b(i_idx11), .dir(1'b1), .dout_lo(s1_d10), .idx_lo(s1_i10), .dout_hi(s1_d11), .idx_hi(s1_i11));
+    compare_swap u_cs_s1_12_13 (.din_a(i_key12), .idx_a(i_idx12), .din_b(i_key13), .idx_b(i_idx13), .dir(1'b0), .dout_lo(s1_d12), .idx_lo(s1_i12), .dout_hi(s1_d13), .idx_hi(s1_i13));
+    compare_swap u_cs_s1_14_15 (.din_a(i_key14), .idx_a(i_idx14), .din_b(i_key15), .idx_b(i_idx15), .dir(1'b1), .dout_lo(s1_d14), .idx_lo(s1_i14), .dout_hi(s1_d15), .idx_hi(s1_i15));
 
     // =========================================================
     // Step 2: 跨2路比较，形成4个升/降序4元组
     // =========================================================
-    wire [63:0] s2_d0,  s2_d1,  s2_d2,  s2_d3,  s2_d4,  s2_d5,  s2_d6,  s2_d7;
-    wire [63:0] s2_d8,  s2_d9,  s2_d10, s2_d11, s2_d12, s2_d13, s2_d14, s2_d15;
+    wire [18:0] s2_d0,  s2_d1,  s2_d2,  s2_d3,  s2_d4,  s2_d5,  s2_d6,  s2_d7;
+    wire [18:0] s2_d8,  s2_d9,  s2_d10, s2_d11, s2_d12, s2_d13, s2_d14, s2_d15;
     wire [ 3:0] s2_i0,  s2_i1,  s2_i2,  s2_i3,  s2_i4,  s2_i5,  s2_i6,  s2_i7;
     wire [ 3:0] s2_i8,  s2_i9,  s2_i10, s2_i11, s2_i12, s2_i13, s2_i14, s2_i15;
 
@@ -141,8 +134,8 @@ module bitonic_sort (
     // =========================================================
     reg         p1_vld;
     reg [15:0]  p1_bitmap;
-    reg [63:0]  p1_d0,  p1_d1,  p1_d2,  p1_d3,  p1_d4,  p1_d5,  p1_d6,  p1_d7;
-    reg [63:0]  p1_d8,  p1_d9,  p1_d10, p1_d11, p1_d12, p1_d13, p1_d14, p1_d15;
+    reg [18:0]  p1_d0,  p1_d1,  p1_d2,  p1_d3,  p1_d4,  p1_d5,  p1_d6,  p1_d7;
+    reg [18:0]  p1_d8,  p1_d9,  p1_d10, p1_d11, p1_d12, p1_d13, p1_d14, p1_d15;
     reg [ 3:0]  p1_i0,  p1_i1,  p1_i2,  p1_i3,  p1_i4,  p1_i5,  p1_i6,  p1_i7;
     reg [ 3:0]  p1_i8,  p1_i9,  p1_i10, p1_i11, p1_i12, p1_i13, p1_i14, p1_i15;
 
@@ -177,8 +170,8 @@ module bitonic_sort (
     // =========================================================
     // Step 3: 相邻比较，完成4路排序（每组4元素内部有序）
     // =========================================================
-    wire [63:0] s3_d0,  s3_d1,  s3_d2,  s3_d3,  s3_d4,  s3_d5,  s3_d6,  s3_d7;
-    wire [63:0] s3_d8,  s3_d9,  s3_d10, s3_d11, s3_d12, s3_d13, s3_d14, s3_d15;
+    wire [18:0] s3_d0,  s3_d1,  s3_d2,  s3_d3,  s3_d4,  s3_d5,  s3_d6,  s3_d7;
+    wire [18:0] s3_d8,  s3_d9,  s3_d10, s3_d11, s3_d12, s3_d13, s3_d14, s3_d15;
     wire [ 3:0] s3_i0,  s3_i1,  s3_i2,  s3_i3,  s3_i4,  s3_i5,  s3_i6,  s3_i7;
     wire [ 3:0] s3_i8,  s3_i9,  s3_i10, s3_i11, s3_i12, s3_i13, s3_i14, s3_i15;
 
@@ -194,8 +187,8 @@ module bitonic_sort (
     // =========================================================
     // Step 4: 跨4路比较，形成2个升/降序8元组
     // =========================================================
-    wire [63:0] s4_d0,  s4_d1,  s4_d2,  s4_d3,  s4_d4,  s4_d5,  s4_d6,  s4_d7;
-    wire [63:0] s4_d8,  s4_d9,  s4_d10, s4_d11, s4_d12, s4_d13, s4_d14, s4_d15;
+    wire [18:0] s4_d0,  s4_d1,  s4_d2,  s4_d3,  s4_d4,  s4_d5,  s4_d6,  s4_d7;
+    wire [18:0] s4_d8,  s4_d9,  s4_d10, s4_d11, s4_d12, s4_d13, s4_d14, s4_d15;
     wire [ 3:0] s4_i0,  s4_i1,  s4_i2,  s4_i3,  s4_i4,  s4_i5,  s4_i6,  s4_i7;
     wire [ 3:0] s4_i8,  s4_i9,  s4_i10, s4_i11, s4_i12, s4_i13, s4_i14, s4_i15;
 
@@ -213,8 +206,8 @@ module bitonic_sort (
     // =========================================================
     reg         p2_vld;
     reg [15:0]  p2_bitmap;
-    reg [63:0]  p2_d0,  p2_d1,  p2_d2,  p2_d3,  p2_d4,  p2_d5,  p2_d6,  p2_d7;
-    reg [63:0]  p2_d8,  p2_d9,  p2_d10, p2_d11, p2_d12, p2_d13, p2_d14, p2_d15;
+    reg [18:0]  p2_d0,  p2_d1,  p2_d2,  p2_d3,  p2_d4,  p2_d5,  p2_d6,  p2_d7;
+    reg [18:0]  p2_d8,  p2_d9,  p2_d10, p2_d11, p2_d12, p2_d13, p2_d14, p2_d15;
     reg [ 3:0]  p2_i0,  p2_i1,  p2_i2,  p2_i3,  p2_i4,  p2_i5,  p2_i6,  p2_i7;
     reg [ 3:0]  p2_i8,  p2_i9,  p2_i10, p2_i11, p2_i12, p2_i13, p2_i14, p2_i15;
 
@@ -248,8 +241,8 @@ module bitonic_sort (
     // =========================================================
     // Step 5: 跨2路比较（8元组内部细化）
     // =========================================================
-    wire [63:0] s5_d0,  s5_d1,  s5_d2,  s5_d3,  s5_d4,  s5_d5,  s5_d6,  s5_d7;
-    wire [63:0] s5_d8,  s5_d9,  s5_d10, s5_d11, s5_d12, s5_d13, s5_d14, s5_d15;
+    wire [18:0] s5_d0,  s5_d1,  s5_d2,  s5_d3,  s5_d4,  s5_d5,  s5_d6,  s5_d7;
+    wire [18:0] s5_d8,  s5_d9,  s5_d10, s5_d11, s5_d12, s5_d13, s5_d14, s5_d15;
     wire [ 3:0] s5_i0,  s5_i1,  s5_i2,  s5_i3,  s5_i4,  s5_i5,  s5_i6,  s5_i7;
     wire [ 3:0] s5_i8,  s5_i9,  s5_i10, s5_i11, s5_i12, s5_i13, s5_i14, s5_i15;
 
@@ -266,8 +259,8 @@ module bitonic_sort (
     // Step 6: 组内相邻比较，完成两个8路组的内部排序
     //   [0-7] 升序 (dir=0)，[8-15] 降序 (dir=1)
     // =========================================================
-    wire [63:0] s6_d0,  s6_d1,  s6_d2,  s6_d3,  s6_d4,  s6_d5,  s6_d6,  s6_d7;
-    wire [63:0] s6_d8,  s6_d9,  s6_d10, s6_d11, s6_d12, s6_d13, s6_d14, s6_d15;
+    wire [18:0] s6_d0,  s6_d1,  s6_d2,  s6_d3,  s6_d4,  s6_d5,  s6_d6,  s6_d7;
+    wire [18:0] s6_d8,  s6_d9,  s6_d10, s6_d11, s6_d12, s6_d13, s6_d14, s6_d15;
     wire [ 3:0] s6_i0,  s6_i1,  s6_i2,  s6_i3,  s6_i4,  s6_i5,  s6_i6,  s6_i7;
     wire [ 3:0] s6_i8,  s6_i9,  s6_i10, s6_i11, s6_i12, s6_i13, s6_i14, s6_i15;
 
@@ -285,8 +278,8 @@ module bitonic_sort (
     // =========================================================
     reg         p3_vld;
     reg [15:0]  p3_bitmap;
-    reg [63:0]  p3_d0,  p3_d1,  p3_d2,  p3_d3,  p3_d4,  p3_d5,  p3_d6,  p3_d7;
-    reg [63:0]  p3_d8,  p3_d9,  p3_d10, p3_d11, p3_d12, p3_d13, p3_d14, p3_d15;
+    reg [18:0]  p3_d0,  p3_d1,  p3_d2,  p3_d3,  p3_d4,  p3_d5,  p3_d6,  p3_d7;
+    reg [18:0]  p3_d8,  p3_d9,  p3_d10, p3_d11, p3_d12, p3_d13, p3_d14, p3_d15;
     reg [ 3:0]  p3_i0,  p3_i1,  p3_i2,  p3_i3,  p3_i4,  p3_i5,  p3_i6,  p3_i7;
     reg [ 3:0]  p3_i8,  p3_i9,  p3_i10, p3_i11, p3_i12, p3_i13, p3_i14, p3_i15;
 
@@ -320,8 +313,8 @@ module bitonic_sort (
     // =========================================================
     // Step 7: 跨8路比较，合并两个8路组（升序合并）
     // =========================================================
-    wire [63:0] s7_d0,  s7_d1,  s7_d2,  s7_d3,  s7_d4,  s7_d5,  s7_d6,  s7_d7;
-    wire [63:0] s7_d8,  s7_d9,  s7_d10, s7_d11, s7_d12, s7_d13, s7_d14, s7_d15;
+    wire [18:0] s7_d0,  s7_d1,  s7_d2,  s7_d3,  s7_d4,  s7_d5,  s7_d6,  s7_d7;
+    wire [18:0] s7_d8,  s7_d9,  s7_d10, s7_d11, s7_d12, s7_d13, s7_d14, s7_d15;
     wire [ 3:0] s7_i0,  s7_i1,  s7_i2,  s7_i3,  s7_i4,  s7_i5,  s7_i6,  s7_i7;
     wire [ 3:0] s7_i8,  s7_i9,  s7_i10, s7_i11, s7_i12, s7_i13, s7_i14, s7_i15;
 
@@ -337,8 +330,8 @@ module bitonic_sort (
     // =========================================================
     // Step 8: 跨4路比较（16元组内部细化）
     // =========================================================
-    wire [63:0] s8_d0,  s8_d1,  s8_d2,  s8_d3,  s8_d4,  s8_d5,  s8_d6,  s8_d7;
-    wire [63:0] s8_d8,  s8_d9,  s8_d10, s8_d11, s8_d12, s8_d13, s8_d14, s8_d15;
+    wire [18:0] s8_d0,  s8_d1,  s8_d2,  s8_d3,  s8_d4,  s8_d5,  s8_d6,  s8_d7;
+    wire [18:0] s8_d8,  s8_d9,  s8_d10, s8_d11, s8_d12, s8_d13, s8_d14, s8_d15;
     wire [ 3:0] s8_i0,  s8_i1,  s8_i2,  s8_i3,  s8_i4,  s8_i5,  s8_i6,  s8_i7;
     wire [ 3:0] s8_i8,  s8_i9,  s8_i10, s8_i11, s8_i12, s8_i13, s8_i14, s8_i15;
 
@@ -356,8 +349,8 @@ module bitonic_sort (
     // =========================================================
     reg         p4_vld;
     reg [15:0]  p4_bitmap;
-    reg [63:0]  p4_d0,  p4_d1,  p4_d2,  p4_d3,  p4_d4,  p4_d5,  p4_d6,  p4_d7;
-    reg [63:0]  p4_d8,  p4_d9,  p4_d10, p4_d11, p4_d12, p4_d13, p4_d14, p4_d15;
+    reg [18:0]  p4_d0,  p4_d1,  p4_d2,  p4_d3,  p4_d4,  p4_d5,  p4_d6,  p4_d7;
+    reg [18:0]  p4_d8,  p4_d9,  p4_d10, p4_d11, p4_d12, p4_d13, p4_d14, p4_d15;
     reg [ 3:0]  p4_i0,  p4_i1,  p4_i2,  p4_i3,  p4_i4,  p4_i5,  p4_i6,  p4_i7;
     reg [ 3:0]  p4_i8,  p4_i9,  p4_i10, p4_i11, p4_i12, p4_i13, p4_i14, p4_i15;
 
@@ -391,8 +384,8 @@ module bitonic_sort (
     // =========================================================
     // Step 9: 跨2路比较（16元组内部细化）
     // =========================================================
-    wire [63:0] s9_d0,  s9_d1,  s9_d2,  s9_d3,  s9_d4,  s9_d5,  s9_d6,  s9_d7;
-    wire [63:0] s9_d8,  s9_d9,  s9_d10, s9_d11, s9_d12, s9_d13, s9_d14, s9_d15;
+    wire [18:0] s9_d0,  s9_d1,  s9_d2,  s9_d3,  s9_d4,  s9_d5,  s9_d6,  s9_d7;
+    wire [18:0] s9_d8,  s9_d9,  s9_d10, s9_d11, s9_d12, s9_d13, s9_d14, s9_d15;
     wire [ 3:0] s9_i0,  s9_i1,  s9_i2,  s9_i3,  s9_i4,  s9_i5,  s9_i6,  s9_i7;
     wire [ 3:0] s9_i8,  s9_i9,  s9_i10, s9_i11, s9_i12, s9_i13, s9_i14, s9_i15;
 
@@ -406,10 +399,10 @@ module bitonic_sort (
     compare_swap u_cs_s9_13_15 (.din_a(p4_d13), .idx_a(p4_i13), .din_b(p4_d15), .idx_b(p4_i15), .dir(1'b0), .dout_lo(s9_d13), .idx_lo(s9_i13), .dout_hi(s9_d15), .idx_hi(s9_i15));
 
     // =========================================================
-    // Step 10: 最终相邻比较，完成全排序
+    // Step 10: 相邻比较，完成最终排序
     // =========================================================
-    wire [63:0] s10_d0,  s10_d1,  s10_d2,  s10_d3,  s10_d4,  s10_d5,  s10_d6,  s10_d7;
-    wire [63:0] s10_d8,  s10_d9,  s10_d10, s10_d11, s10_d12, s10_d13, s10_d14, s10_d15;
+    wire [18:0] s10_d0,  s10_d1,  s10_d2,  s10_d3,  s10_d4,  s10_d5,  s10_d6,  s10_d7;
+    wire [18:0] s10_d8,  s10_d9,  s10_d10, s10_d11, s10_d12, s10_d13, s10_d14, s10_d15;
     wire [ 3:0] s10_i0,  s10_i1,  s10_i2,  s10_i3,  s10_i4,  s10_i5,  s10_i6,  s10_i7;
     wire [ 3:0] s10_i8,  s10_i9,  s10_i10, s10_i11, s10_i12, s10_i13, s10_i14, s10_i15;
 
@@ -451,22 +444,22 @@ module bitonic_sort (
     // 无复位：数据输出，仅 p4_vld=1 时锁存
     always @(posedge clk) begin
         if (p4_vld) begin
-            o_dout0  <= s10_d0;  o_idx0  <= s10_i0;
-            o_dout1  <= s10_d1;  o_idx1  <= s10_i1;
-            o_dout2  <= s10_d2;  o_idx2  <= s10_i2;
-            o_dout3  <= s10_d3;  o_idx3  <= s10_i3;
-            o_dout4  <= s10_d4;  o_idx4  <= s10_i4;
-            o_dout5  <= s10_d5;  o_idx5  <= s10_i5;
-            o_dout6  <= s10_d6;  o_idx6  <= s10_i6;
-            o_dout7  <= s10_d7;  o_idx7  <= s10_i7;
-            o_dout8  <= s10_d8;  o_idx8  <= s10_i8;
-            o_dout9  <= s10_d9;  o_idx9  <= s10_i9;
-            o_dout10 <= s10_d10; o_idx10 <= s10_i10;
-            o_dout11 <= s10_d11; o_idx11 <= s10_i11;
-            o_dout12 <= s10_d12; o_idx12 <= s10_i12;
-            o_dout13 <= s10_d13; o_idx13 <= s10_i13;
-            o_dout14 <= s10_d14; o_idx14 <= s10_i14;
-            o_dout15 <= s10_d15; o_idx15 <= s10_i15;
+            o_key0  <= s10_d0;  o_idx0  <= s10_i0;
+            o_key1  <= s10_d1;  o_idx1  <= s10_i1;
+            o_key2  <= s10_d2;  o_idx2  <= s10_i2;
+            o_key3  <= s10_d3;  o_idx3  <= s10_i3;
+            o_key4  <= s10_d4;  o_idx4  <= s10_i4;
+            o_key5  <= s10_d5;  o_idx5  <= s10_i5;
+            o_key6  <= s10_d6;  o_idx6  <= s10_i6;
+            o_key7  <= s10_d7;  o_idx7  <= s10_i7;
+            o_key8  <= s10_d8;  o_idx8  <= s10_i8;
+            o_key9  <= s10_d9;  o_idx9  <= s10_i9;
+            o_key10 <= s10_d10; o_idx10 <= s10_i10;
+            o_key11 <= s10_d11; o_idx11 <= s10_i11;
+            o_key12 <= s10_d12; o_idx12 <= s10_i12;
+            o_key13 <= s10_d13; o_idx13 <= s10_i13;
+            o_key14 <= s10_d14; o_idx14 <= s10_i14;
+            o_key15 <= s10_d15; o_idx15 <= s10_i15;
         end
     end
 
