@@ -1,17 +1,16 @@
 // =============================================================================
 // Module  : decomp_square
-// Description : 单通道解压缩 + 求模方（纯组合逻辑，顶层负责流水打拍）
+// Description : 单通道解压缩 + 求模方，2拍流水
 //
 // 输入格式：cmp_data[19:0] = {exp[3:0], sign[0], data[14:0]}
 //
-// 解压缩公式（sign 对平方无影响，直接忽略）：
-//   exp > 0: decp_data_tmp = {1'b1, data[14:0]} << (exp - 1)
-//   exp = 0: decp_data_tmp = {1'b0, data[14:0]}
+// 流水线结构：
+//   Stage 1（组合）：构造 val16，计算 prod = val16*val16，计算 shift_amt
+//   寄存器：prod_reg[31:0], shift_amt_reg[4:0]（由顶层打拍）
+//   Stage 2（组合）：square = {28'b0, prod_reg} << shift_amt_reg
 //
-// 平方优化——拆分为 16x16 乘法 + 桶形移位：
-//   val16     = (exp > 0) ? {1'b1, data[14:0]} : {1'b0, data[14:0]}
-//   shift_amt = (exp > 0) ? 2*(exp-1) : 0          // 范围 0~28
-//   square    = (val16 * val16) << shift_amt         // 结果最高 bit59，64bit可容纳
+// 注意：本模块为纯组合逻辑，流水寄存器由顶层 deu_design 负责。
+//       顶层需在 Stage1 输出和 Stage2 输入之间插入寄存器。
 //
 // 位宽分析：
 //   val16 最大 16'hFFFF；val16² 最大 32'hFFFE_0001；

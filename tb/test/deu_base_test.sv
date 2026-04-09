@@ -150,4 +150,48 @@ class deu_random_test extends deu_base_test;
 
 endclass : deu_random_test
 
+// =============================================================================
+// deu_dt77_test
+// Description: Directed test with SLIV=0x77, specific per-channel data.
+//   sliv=0x77 (119 decimal)
+//   data0~15 = {0x2a16e, 0xe1064, 0x64ca7, 0xfffff, 0x4a5d, 0x2591f,
+//               0xfffff, 0xfffff, 0x7ac31, 0xa7c38, 0xd3a87, 0xfffff,
+//               0xfeb1d, 0xafe05, 0x6dd7, 0x877df}
+// =============================================================================
+class deu_dt77_test extends deu_base_test;
+    `uvm_component_utils(deu_dt77_test)
+
+    function new(string name, uvm_component parent);
+        super.new(name, parent);
+    endfunction
+
+    virtual function void configure_test();
+        cfg.test_mode            = MODE_DIRECTED;
+        cfg.num_transactions     = 1;
+        cfg.sliv_fixed           = 7'h77;   // 119
+        cfg.vld_pattern          = VLD_ALWAYS_HIGH;
+        cfg.check_pipeline_delay = 1;
+        cfg.check_power_hold     = 0;
+        cfg.use_fixed_cmp_data   = 1;
+        cfg.fixed_cmp_data[0]  = 20'h2a16e;
+        cfg.fixed_cmp_data[1]  = 20'he1064;
+        cfg.fixed_cmp_data[2]  = 20'h64ca7;
+        cfg.fixed_cmp_data[3]  = 20'hfffff;
+        cfg.fixed_cmp_data[4]  = 20'h04a5d;
+        cfg.fixed_cmp_data[5]  = 20'h2591f;
+        cfg.fixed_cmp_data[6]  = 20'hfffff;
+        cfg.fixed_cmp_data[7]  = 20'hfffff;
+        cfg.fixed_cmp_data[8]  = 20'h7ac31;
+        cfg.fixed_cmp_data[9]  = 20'ha7c38;
+        cfg.fixed_cmp_data[10] = 20'hd3a87;
+        cfg.fixed_cmp_data[11] = 20'hfffff;
+        cfg.fixed_cmp_data[12] = 20'hfeb1d;
+        cfg.fixed_cmp_data[13] = 20'hafe05;
+        cfg.fixed_cmp_data[14] = 20'h06dd7;
+        cfg.fixed_cmp_data[15] = 20'h877df;
+        `uvm_info("TEST", "DT77 test: SLIV=0x77 fixed per-channel data", UVM_LOW)
+    endfunction
+
+endclass : deu_dt77_test
+
 `endif // DEU_BASE_TEST_SV

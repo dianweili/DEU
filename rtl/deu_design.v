@@ -357,58 +357,88 @@ module deu_design (
     );
 
     // =========================================================
-    // Stage 9（输出寄存器）：decomp_square + reg_out
+    // Stage 9：sort 输出 key 寄存器（切断 sort→decomp_square 路径）
     // key[19]=valid_n(丢弃), key[18:15]=exp[3:0], key[14:0]=data[14:0]
-    // 重组为 cmp_data={exp[3:0], sign=0, data[14:0]}
     // =========================================================
-    wire [19:0] out_cmp0  = {sort_key0[18:15],  1'b0, sort_key0[14:0]};
-    wire [19:0] out_cmp1  = {sort_key1[18:15],  1'b0, sort_key1[14:0]};
-    wire [19:0] out_cmp2  = {sort_key2[18:15],  1'b0, sort_key2[14:0]};
-    wire [19:0] out_cmp3  = {sort_key3[18:15],  1'b0, sort_key3[14:0]};
-    wire [19:0] out_cmp4  = {sort_key4[18:15],  1'b0, sort_key4[14:0]};
-    wire [19:0] out_cmp5  = {sort_key5[18:15],  1'b0, sort_key5[14:0]};
-    wire [19:0] out_cmp6  = {sort_key6[18:15],  1'b0, sort_key6[14:0]};
-    wire [19:0] out_cmp7  = {sort_key7[18:15],  1'b0, sort_key7[14:0]};
-    wire [19:0] out_cmp8  = {sort_key8[18:15],  1'b0, sort_key8[14:0]};
-    wire [19:0] out_cmp9  = {sort_key9[18:15],  1'b0, sort_key9[14:0]};
-    wire [19:0] out_cmp10 = {sort_key10[18:15], 1'b0, sort_key10[14:0]};
-    wire [19:0] out_cmp11 = {sort_key11[18:15], 1'b0, sort_key11[14:0]};
-    wire [19:0] out_cmp12 = {sort_key12[18:15], 1'b0, sort_key12[14:0]};
-    wire [19:0] out_cmp13 = {sort_key13[18:15], 1'b0, sort_key13[14:0]};
-    wire [19:0] out_cmp14 = {sort_key14[18:15], 1'b0, sort_key14[14:0]};
-    wire [19:0] out_cmp15 = {sort_key15[18:15], 1'b0, sort_key15[14:0]};
+    reg         r9_vld;
+    reg [15:0]  r9_dout_vld;
+    reg [19:0]  r9_cmp0,  r9_cmp1,  r9_cmp2,  r9_cmp3;
+    reg [19:0]  r9_cmp4,  r9_cmp5,  r9_cmp6,  r9_cmp7;
+    reg [19:0]  r9_cmp8,  r9_cmp9,  r9_cmp10, r9_cmp11;
+    reg [19:0]  r9_cmp12, r9_cmp13, r9_cmp14, r9_cmp15;
+    reg [ 3:0]  r9_idx0,  r9_idx1,  r9_idx2,  r9_idx3;
+    reg [ 3:0]  r9_idx4,  r9_idx5,  r9_idx6,  r9_idx7;
+    reg [ 3:0]  r9_idx8,  r9_idx9,  r9_idx10, r9_idx11;
+    reg [ 3:0]  r9_idx12, r9_idx13, r9_idx14, r9_idx15;
 
+    always @(posedge clk or negedge rst_n) begin
+        if (!rst_n) r9_dout_vld <= 16'h0;
+        else        r9_dout_vld <= sort_dout_vld;
+    end
+
+    always @(posedge clk) begin
+        if (|sort_dout_vld) begin
+            r9_cmp0  <= {sort_key0[18:15],  1'b0, sort_key0[14:0]};
+            r9_cmp1  <= {sort_key1[18:15],  1'b0, sort_key1[14:0]};
+            r9_cmp2  <= {sort_key2[18:15],  1'b0, sort_key2[14:0]};
+            r9_cmp3  <= {sort_key3[18:15],  1'b0, sort_key3[14:0]};
+            r9_cmp4  <= {sort_key4[18:15],  1'b0, sort_key4[14:0]};
+            r9_cmp5  <= {sort_key5[18:15],  1'b0, sort_key5[14:0]};
+            r9_cmp6  <= {sort_key6[18:15],  1'b0, sort_key6[14:0]};
+            r9_cmp7  <= {sort_key7[18:15],  1'b0, sort_key7[14:0]};
+            r9_cmp8  <= {sort_key8[18:15],  1'b0, sort_key8[14:0]};
+            r9_cmp9  <= {sort_key9[18:15],  1'b0, sort_key9[14:0]};
+            r9_cmp10 <= {sort_key10[18:15], 1'b0, sort_key10[14:0]};
+            r9_cmp11 <= {sort_key11[18:15], 1'b0, sort_key11[14:0]};
+            r9_cmp12 <= {sort_key12[18:15], 1'b0, sort_key12[14:0]};
+            r9_cmp13 <= {sort_key13[18:15], 1'b0, sort_key13[14:0]};
+            r9_cmp14 <= {sort_key14[18:15], 1'b0, sort_key14[14:0]};
+            r9_cmp15 <= {sort_key15[18:15], 1'b0, sort_key15[14:0]};
+            r9_idx0  <= sort_idx0;  r9_idx1  <= sort_idx1;
+            r9_idx2  <= sort_idx2;  r9_idx3  <= sort_idx3;
+            r9_idx4  <= sort_idx4;  r9_idx5  <= sort_idx5;
+            r9_idx6  <= sort_idx6;  r9_idx7  <= sort_idx7;
+            r9_idx8  <= sort_idx8;  r9_idx9  <= sort_idx9;
+            r9_idx10 <= sort_idx10; r9_idx11 <= sort_idx11;
+            r9_idx12 <= sort_idx12; r9_idx13 <= sort_idx13;
+            r9_idx14 <= sort_idx14; r9_idx15 <= sort_idx15;
+        end
+    end
+
+    // =========================================================
+    // Stage 10：decomp_square（组合）+ 输出寄存器
+    // =========================================================
     wire [63:0] sq_out0,  sq_out1,  sq_out2,  sq_out3;
     wire [63:0] sq_out4,  sq_out5,  sq_out6,  sq_out7;
     wire [63:0] sq_out8,  sq_out9,  sq_out10, sq_out11;
     wire [63:0] sq_out12, sq_out13, sq_out14, sq_out15;
 
-    decomp_square u_ds0  (.cmp_data(out_cmp0),  .square(sq_out0));
-    decomp_square u_ds1  (.cmp_data(out_cmp1),  .square(sq_out1));
-    decomp_square u_ds2  (.cmp_data(out_cmp2),  .square(sq_out2));
-    decomp_square u_ds3  (.cmp_data(out_cmp3),  .square(sq_out3));
-    decomp_square u_ds4  (.cmp_data(out_cmp4),  .square(sq_out4));
-    decomp_square u_ds5  (.cmp_data(out_cmp5),  .square(sq_out5));
-    decomp_square u_ds6  (.cmp_data(out_cmp6),  .square(sq_out6));
-    decomp_square u_ds7  (.cmp_data(out_cmp7),  .square(sq_out7));
-    decomp_square u_ds8  (.cmp_data(out_cmp8),  .square(sq_out8));
-    decomp_square u_ds9  (.cmp_data(out_cmp9),  .square(sq_out9));
-    decomp_square u_ds10 (.cmp_data(out_cmp10), .square(sq_out10));
-    decomp_square u_ds11 (.cmp_data(out_cmp11), .square(sq_out11));
-    decomp_square u_ds12 (.cmp_data(out_cmp12), .square(sq_out12));
-    decomp_square u_ds13 (.cmp_data(out_cmp13), .square(sq_out13));
-    decomp_square u_ds14 (.cmp_data(out_cmp14), .square(sq_out14));
-    decomp_square u_ds15 (.cmp_data(out_cmp15), .square(sq_out15));
+    decomp_square u_ds0  (.cmp_data(r9_cmp0),  .square(sq_out0));
+    decomp_square u_ds1  (.cmp_data(r9_cmp1),  .square(sq_out1));
+    decomp_square u_ds2  (.cmp_data(r9_cmp2),  .square(sq_out2));
+    decomp_square u_ds3  (.cmp_data(r9_cmp3),  .square(sq_out3));
+    decomp_square u_ds4  (.cmp_data(r9_cmp4),  .square(sq_out4));
+    decomp_square u_ds5  (.cmp_data(r9_cmp5),  .square(sq_out5));
+    decomp_square u_ds6  (.cmp_data(r9_cmp6),  .square(sq_out6));
+    decomp_square u_ds7  (.cmp_data(r9_cmp7),  .square(sq_out7));
+    decomp_square u_ds8  (.cmp_data(r9_cmp8),  .square(sq_out8));
+    decomp_square u_ds9  (.cmp_data(r9_cmp9),  .square(sq_out9));
+    decomp_square u_ds10 (.cmp_data(r9_cmp10), .square(sq_out10));
+    decomp_square u_ds11 (.cmp_data(r9_cmp11), .square(sq_out11));
+    decomp_square u_ds12 (.cmp_data(r9_cmp12), .square(sq_out12));
+    decomp_square u_ds13 (.cmp_data(r9_cmp13), .square(sq_out13));
+    decomp_square u_ds14 (.cmp_data(r9_cmp14), .square(sq_out14));
+    decomp_square u_ds15 (.cmp_data(r9_cmp15), .square(sq_out15));
 
-    // 带复位：o_dout_vld
+    // 带复位：o_dout_vld（再延一拍）
     reg [15:0] r_dout_vld;
     always @(posedge clk or negedge rst_n) begin
         if (!rst_n) r_dout_vld <= 16'h0;
-        else        r_dout_vld <= sort_dout_vld;
+        else        r_dout_vld <= r9_dout_vld;
     end
     assign o_dout_vld = r_dout_vld;
 
-    // 无复位：数据输出，仅 sort_dout_vld 有效时锁存
+    // 无复位：数据输出寄存器
     reg [63:0] r_dout0,  r_dout1,  r_dout2,  r_dout3;
     reg [63:0] r_dout4,  r_dout5,  r_dout6,  r_dout7;
     reg [63:0] r_dout8,  r_dout9,  r_dout10, r_dout11;
@@ -419,23 +449,23 @@ module deu_design (
     reg [ 3:0] r_idx12,  r_idx13,  r_idx14,  r_idx15;
 
     always @(posedge clk) begin
-        if (|sort_dout_vld) begin
-            r_dout0  <= sq_out0;   r_idx0  <= sort_idx0;
-            r_dout1  <= sq_out1;   r_idx1  <= sort_idx1;
-            r_dout2  <= sq_out2;   r_idx2  <= sort_idx2;
-            r_dout3  <= sq_out3;   r_idx3  <= sort_idx3;
-            r_dout4  <= sq_out4;   r_idx4  <= sort_idx4;
-            r_dout5  <= sq_out5;   r_idx5  <= sort_idx5;
-            r_dout6  <= sq_out6;   r_idx6  <= sort_idx6;
-            r_dout7  <= sq_out7;   r_idx7  <= sort_idx7;
-            r_dout8  <= sq_out8;   r_idx8  <= sort_idx8;
-            r_dout9  <= sq_out9;   r_idx9  <= sort_idx9;
-            r_dout10 <= sq_out10;  r_idx10 <= sort_idx10;
-            r_dout11 <= sq_out11;  r_idx11 <= sort_idx11;
-            r_dout12 <= sq_out12;  r_idx12 <= sort_idx12;
-            r_dout13 <= sq_out13;  r_idx13 <= sort_idx13;
-            r_dout14 <= sq_out14;  r_idx14 <= sort_idx14;
-            r_dout15 <= sq_out15;  r_idx15 <= sort_idx15;
+        if (|r9_dout_vld) begin
+            r_dout0  <= sq_out0;   r_idx0  <= r9_idx0;
+            r_dout1  <= sq_out1;   r_idx1  <= r9_idx1;
+            r_dout2  <= sq_out2;   r_idx2  <= r9_idx2;
+            r_dout3  <= sq_out3;   r_idx3  <= r9_idx3;
+            r_dout4  <= sq_out4;   r_idx4  <= r9_idx4;
+            r_dout5  <= sq_out5;   r_idx5  <= r9_idx5;
+            r_dout6  <= sq_out6;   r_idx6  <= r9_idx6;
+            r_dout7  <= sq_out7;   r_idx7  <= r9_idx7;
+            r_dout8  <= sq_out8;   r_idx8  <= r9_idx8;
+            r_dout9  <= sq_out9;   r_idx9  <= r9_idx9;
+            r_dout10 <= sq_out10;  r_idx10 <= r9_idx10;
+            r_dout11 <= sq_out11;  r_idx11 <= r9_idx11;
+            r_dout12 <= sq_out12;  r_idx12 <= r9_idx12;
+            r_dout13 <= sq_out13;  r_idx13 <= r9_idx13;
+            r_dout14 <= sq_out14;  r_idx14 <= r9_idx14;
+            r_dout15 <= sq_out15;  r_idx15 <= r9_idx15;
         end
     end
 

@@ -20,6 +20,10 @@ SIM_DIR    := $(PROJ_ROOT)/sim
 # ---- Tool -------------------------------------------------------------------
 SIM        ?= vcs
 
+# ---- Verdi/FSDB PLI ---------------------------------------------------------
+VERDI_HOME ?= /data/synopsys/verdi_vW-2024.09-SP1/verdi/W-2024.09-SP1
+NOVAS_PLI  := $(VERDI_HOME)/share/PLI/VCS/linux64
+
 # ---- Defaults ---------------------------------------------------------------
 TESTNAME   ?= deu_sanity_test
 CFG        ?= $(TB_DIR)/cfg/sanity.cfg
@@ -50,6 +54,7 @@ VCS_COMP_FLAGS := \
     -ntb_opts uvm-1.2 \
     -timescale=1ns/1ps \
     -debug_access+all \
+    -kdb \
     +incdir+$(TB_DIR)/cfg \
     +incdir+$(TB_DIR)/env \
     +incdir+$(TB_DIR)/ref \
@@ -78,9 +83,9 @@ VCS_SIM_FLAGS += -gui
 endif
 
 ifeq ($(FSDB),1)
-VCS_SIM_FLAGS += +fsdbfile=$(SIM_DIR)/waves.fsdb
+VCS_SIM_FLAGS += +fsdbfile=$(SIM_DIR)/waves/$(TESTNAME).fsdb
 else
-VCS_SIM_FLAGS += +vpdfile=$(SIM_DIR)/waves.vpd
+VCS_SIM_FLAGS += +vpdfile=$(SIM_DIR)/waves/$(TESTNAME).vpd
 endif
 
 # ---- Xcelium compile flags --------------------------------------------------
@@ -123,7 +128,7 @@ VERICOM_FLAGS  := \
     +incdir+$(TB_DIR)/test \
     +incdir+$(TB_DIR)/top
 
-.PHONY: all sanity directed random waves clean help test compile coverage cov_report vericom
+.PHONY: all sanity directed random waves clean help test compile coverage cov_report vericom run
 
 all: sanity
 
@@ -144,7 +149,7 @@ compile:
 ifeq ($(SIM),xcelium)
 	xrun $(XRUN_FLAGS) $(RTL_FILES) $(TB_TOPS) -elaborate -exit
 else
-	vcs $(VCS_COMP_FLAGS) $(RTL_FILES) $(TB_TOPS) -o $(SIM_DIR)/simv
+	VERDI_HOME=$(VERDI_HOME) vcs $(VCS_COMP_FLAGS) $(RTL_FILES) $(TB_TOPS) -o $(SIM_DIR)/simv
 endif
 
 # ---- Vericom: compile RTL into Verdi design library -------------------------
@@ -164,8 +169,9 @@ ifeq ($(SIM),xcelium)
 	xrun $(XRUN_FLAGS) $(RTL_FILES) $(TB_TOPS) $(XRUN_SIM_FLAGS) \
 	    +UVM_TESTNAME=$(TESTNAME)
 else
-	vcs $(VCS_COMP_FLAGS) $(RTL_FILES) $(TB_TOPS) -o $(SIM_DIR)/simv && \
-	$(SIM_DIR)/simv $(VCS_SIM_FLAGS)
+	mkdir -p $(SIM_DIR)/waves
+	VERDI_HOME=$(VERDI_HOME) vcs $(VCS_COMP_FLAGS) $(RTL_FILES) $(TB_TOPS) -o $(SIM_DIR)/simv && \
+	VERDI_HOME=$(VERDI_HOME) $(SIM_DIR)/simv $(VCS_SIM_FLAGS)
 endif
 
 # ---- Waveform-enabled run ---------------------------------------------------
@@ -233,7 +239,7 @@ clean:
 	       $(SIM_DIR)/csrc $(SIM_DIR)/*.log \
 	       $(SIM_DIR)/ucli.key $(SIM_DIR)/vc_hdrs.h \
 	       $(SIM_DIR)/novas.* $(SIM_DIR)/*.vpd $(SIM_DIR)/*.fsdb \
-	       $(SIM_DIR)/waves.vpd $(SIM_DIR)/waves.fsdb
+	       $(SIM_DIR)/waves/*.vpd $(SIM_DIR)/waves/*.fsdb
 
 # ---- Help -------------------------------------------------------------------
 help:

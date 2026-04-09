@@ -85,14 +85,14 @@ class deu_scoreboard extends uvm_scoreboard;
         // ---- Pipeline latency check -----------------------------------------
         if (cfg.check_pipeline_delay) begin
             longint latency = cycle_cnt - e.cycle_stamp;
-            if (latency != 9) begin
+            if (latency != 8) begin
                 `uvm_error("SCB", $sformatf(
-                    "PIPELINE DELAY ERROR: expected 9, got %0d (in@%0d out@%0d)",
+                    "PIPELINE DELAY ERROR: expected 8, got %0d (in@%0d out@%0d)",
                     latency, e.cycle_stamp, cycle_cnt))
                 checks_failed++;
             end else begin
                 `uvm_info("SCB", $sformatf(
-                    "Pipeline delay OK: 9 cycles (in@%0d)", e.cycle_stamp), UVM_HIGH)
+                    "Pipeline delay OK: 8 cycles (in@%0d)", e.cycle_stamp), UVM_HIGH)
                 checks_passed++;
             end
         end
@@ -136,6 +136,20 @@ class deu_scoreboard extends uvm_scoreboard;
             checks_passed++;
         end else begin
             checks_failed++;
+        end
+
+        // ---- 打印排序输出结果 ------------------------------------------------
+        begin
+            string out_str;
+            int    cnt;
+            cnt = 0;
+            for (int b = 0; b < 16; b++) cnt += resp.o_dout_vld[b];
+            out_str = $sformatf("SORT OUTPUT @cycle%0d | SLIV=0x%02h | o_dout_vld=0x%04h | valid_cnt=%0d",
+                cycle_cnt, e.item.sliv, resp.o_dout_vld, cnt);
+            for (int k = 0; k < cnt; k++)
+                out_str = {out_str, $sformatf("\n  [%0d] idx=%0d  square=0x%016h",
+                    k, resp.o_idx[k], resp.o_dout[k])};
+            `uvm_info("SCB", out_str, UVM_LOW)
         end
     endfunction
 
